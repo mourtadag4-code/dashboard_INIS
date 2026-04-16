@@ -34,6 +34,52 @@ st.markdown("""
 html, body, [class*="css"] {
     font-family: 'DM Sans', sans-serif;
 }
+            
+
+/* Carte unique d'interprétation */
+.interp-card {
+    background: linear-gradient(135deg, #141720 0%, #1a1e2a 100%);
+    border: 1px solid #242838;
+    border-radius: 20px;
+    padding: 22px 28px;
+    margin: 24px 0;
+    position: relative;
+    overflow: hidden;
+}
+.interp-card::before {
+    content: '📊';
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 64px;
+    opacity: 0.06;
+    pointer-events: none;
+}
+.interp-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #f0ece4;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #242838;
+}
+.interp-card-content {
+    font-size: 13px;
+    color: #9ca3af;
+    line-height: 1.7;
+}
+.interp-card-content strong {
+    color: #fbbf24;
+}
+.interp-card-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+.interp-card-content li {
+    margin: 6px 0;
+}
 
 /* Fond global */
 .stApp {
@@ -361,6 +407,34 @@ def card(label, value, sub="", accent="#4e7cff", delta=None):
         {delta_html}
     </div>"""
 
+def section_header(title, subtitle=""):
+    """Crée un en-tête de section stylisé comme le hero de la page d'accueil"""
+    if subtitle:
+        st.markdown(f"""
+        <div class="hero" style="padding: 24px 32px; margin-bottom: 24px;">
+            <h1 style="font-size: 24px !important; margin: 0 !important;">{title}</h1>
+            <p style="margin-top: 8px; font-size: 13px;">{subtitle}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="hero" style="padding: 20px 28px; margin-bottom: 24px;">
+            <h1 style="font-size: 22px !important; margin: 0 !important;">{title}</h1>
+        </div>
+        """, unsafe_allow_html=True)
+
+def afficher_interpretation(titre, texte):
+    st.html(f"""
+    <div class="interp-card" style="color: #ffffff;">
+        <div class="interp-card-title" style="color: #ffffff; font-size: 18px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid #242838; padding-bottom: 10px;">
+            {titre}
+        </div>
+        <div class="interp-card-content" style="color: #ffffff; font-size: 13px; line-height: 1.7;">
+            {texte}
+        </div>
+    </div>
+    """)
+
 # ─────────────────────────────────────────────
 # CHARGEMENT DONNÉES
 # ─────────────────────────────────────────────
@@ -438,7 +512,7 @@ with st.sidebar:
     st.markdown("""
     <div style='padding: 16px 0 24px 0'>
         <div style='font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:#f0ece4;letter-spacing:-0.02em'>
-            🐔 DASHBOARD INIS 
+            🐔 INIS AVICOLE
         </div>
         <div style='font-size:11px;color:#4b5563;letter-spacing:0.08em;text-transform:uppercase;margin-top:4px'>
             Diagnostic des Cycles
@@ -469,21 +543,41 @@ with st.sidebar:
     else:
         selected_cycles = CYCLES  # Tous les cycles par défaut
 
-    st.markdown("---")
     
+    
+    st.markdown("---")
     # Mini-stats sidebar
     total_ca = cycles_recap["ca_fcfa"].sum()
     total_vol = cycles_recap["volume_vendu"].sum()
+    total_dep = cycles_recap["depenses_totales_fcfa"].sum()
+    total_res = cycles_recap["resultat_net_fcfa"].sum()
+
     st.markdown(f"""
     <div style='font-size:11px;color:#4b5563;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px'>Totaux 3 cycles</div>
+
+    <div style='margin-bottom:10px'>
+        <div style='font-size:11px;color:#6b7280'>Sujets vendus</div>
+        <div style='font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:#34d399'>{total_vol:,}</div>
+    </div>
+
     <div style='margin-bottom:10px'>
         <div style='font-size:11px;color:#6b7280'>CA Total</div>
         <div style='font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:#4e7cff'>{total_ca/1e6:.2f} M</div>
         <div style='font-size:10px;color:#4b5563'>FCFA</div>
     </div>
+
+    
+
     <div style='margin-bottom:10px'>
-        <div style='font-size:11px;color:#6b7280'>Sujets vendus</div>
-        <div style='font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:#34d399'>{total_vol:,}</div>
+        <div style='font-size:11px;color:#6b7280'>Dépenses totales</div>
+        <div style='font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:#fbbf24'>{total_dep/1e6:.2f} M</div>
+        <div style='font-size:10px;color:#4b5563'>FCFA</div>
+    </div>
+
+    <div style='margin-bottom:10px'>
+        <div style='font-size:11px;color:#6b7280'>Résultat net</div>
+        <div style='font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:{"#34d399" if total_res >= 0 else "#f87171"}'>{total_res/1e6:+.2f} M</div>
+        <div style='font-size:10px;color:#4b5563'>FCFA</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -525,10 +619,10 @@ if page == "🏠 Vue d'ensemble":
     total_res = cr["resultat_net_fcfa"].sum()
     total_vol = cr["volume_vendu"].sum()
 
-    with cols[0]:
-        st.markdown(card("CA Total", f"{total_ca/1e6:.2f} M FCFA", f"{len(selected_cycles)} cycles", "#4e7cff"), unsafe_allow_html=True)
     with cols[1]:
-        st.markdown(card("Volume Vendu", f"{total_vol:,} têtes", "3 cycles cumulés", "#a78bfa"), unsafe_allow_html=True)
+        st.markdown(card("CA Total", f"{total_ca/1e6:.2f} M FCFA", f"{len(selected_cycles)} cycles", "#4e7cff"), unsafe_allow_html=True)
+    with cols[0]:
+        st.markdown(card("Effectif Vendu", f"{total_vol:,} têtes", "3 cycles cumulés", "#a78bfa"), unsafe_allow_html=True)
     with cols[2]:
         st.markdown(card("Dépenses Totales", f"{total_dep/1e6:.2f} M FCFA", "Charges visibles", "#fbbf24"), unsafe_allow_html=True)
     with cols[3]:
@@ -543,7 +637,7 @@ if page == "🏠 Vue d'ensemble":
     
     # Mortalité moyenne
     mort_moy = cr["taux_mortalite_pct"].mean()
-    with col_a:
+    with col_d:
         st.markdown(card("Mortalité Moy.", f"{mort_moy:.1f}%", "Tous cycles", "#f87171" if mort_moy > 4 else "#34d399"), unsafe_allow_html=True)
     
     # IC moyen (calculé)
@@ -562,9 +656,9 @@ if page == "🏠 Vue d'ensemble":
     prix_revient_moy = cr["prix_revient_unitaire"].mean()
     prix_moyen = cr["prix_moyen_fcfa"].mean()
     delta_marge = prix_moyen - prix_revient_moy
-    with col_d:
+    with col_a:
         color_delta = "#34d399" if delta_marge >= 0 else "#f87171"
-        st.markdown(card("Marge brute/sujet", f"{delta_marge:+.0f} FCFA", f"Prix: {prix_moyen:.0f} / Revient: {prix_revient_moy:.0f}", color_delta), unsafe_allow_html=True)
+        st.markdown(card("Marge nette/sujet", f"{delta_marge:+.0f} FCFA", f"Prix: {prix_moyen:.0f} / Revient: {prix_revient_moy:.0f}", color_delta), unsafe_allow_html=True)
 
     st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
 
@@ -584,7 +678,7 @@ if page == "🏠 Vue d'ensemble":
                              marker_line_width=0, opacity=0.9))
         fig.add_trace(go.Bar(name="Dépenses", x=cycs, y=dep_vals,
                              marker_color="#374151", marker_line_width=0, opacity=0.9))
-        fig.add_trace(go.Scatter(name="Résultat", x=cycs, y=res_vals,
+        fig.add_trace(go.Scatter(name="Résultat Net", x=cycs, y=res_vals,
                                  mode="lines+markers",
                                  line=dict(color="#fbbf24", width=2.5, dash="dot"),
                                  marker=dict(size=9, symbol="diamond")))
@@ -657,7 +751,7 @@ if page == "🏠 Vue d'ensemble":
 # ═══════════════════════════════════════════════════
 elif page == "📊 Analyse par Cycle":
 
-    st.markdown('<div class="section-header">Analyse Détaillée par Cycle</div>', unsafe_allow_html=True)
+    section_header("📊 Analyse Détaillée par Cycle", "Effectifs, mortalité, consommation, poids et finances")
 
     cycle_sel = st.selectbox("Choisir un cycle", CYCLES, key="cycle_detail")
     c = cycles_recap[cycles_recap["cycle_id"] == cycle_sel].iloc[0]
@@ -680,35 +774,43 @@ elif page == "📊 Analyse par Cycle":
     """, unsafe_allow_html=True)
 
     # KPIs cycle avec nos indicateurs
+    # Première ligne : 7 indicateurs
     cols = st.columns(5)
-    
-    # Calcul du ROI pour ce cycle
+
+    # Calcul des indicateurs
     roi = c.get("roi_pct", 0)
     ic_val = c.get("ic_calcule", 0)
     prix_revient = c.get("prix_revient_unitaire", 0)
-    marge_brute = c.get("prix_moyen_fcfa", 0) - prix_revient if prix_revient else 0
-    
+    marge_nette = c.get("marge_unitaire_fcfa", 0)  # Résultat net / volume
+
     metrics = [
         ("Effectif Initial", f"{c['effectif_initial']:,}", "têtes", color),
-        ("Volume Vendu", f"{c['volume_vendu']:,}", "têtes", "#34d399"),
-        ("CA", f"{c['ca_fcfa']/1e6:.2f} M", "FCFA", color),
-        ("Mortalité", f"{c['taux_mortalite_pct']:.2f}%", f"{c['mortalite_totale']:.0f} têtes", "#f87171" if c['taux_mortalite_pct']>4 else "#34d399"),
-        ("Résultat Net", f"{c['resultat_net_fcfa']:+,.0f}", "FCFA", "#34d399" if c['resultat_net_fcfa']>=0 else "#f87171"),
+        ("Effectif Vendu", f"{c['volume_vendu']:,}", "têtes", "#34d399"),
+        ("Chiffre d'Affaire (CA)", f"{c['ca_fcfa']/1e6:.2f} M", "FCFA", color),
+        ("Dépenses totales", f"{c['depenses_totales_fcfa']/1e6:.2f} M", "FCFA", "#fbbf24"),
+        ("Dépenses total", f"{prix_revient:,.0f}", "FCFA/sujet", "#a78bfa"),
+        
+        
     ]
+
     for col_w, (lbl, val, sub, acc) in zip(cols, metrics):
         with col_w:
             st.markdown(card(lbl, val, sub, acc), unsafe_allow_html=True)
 
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-    # Deuxième ligne de KPIs
-    cols2 = st.columns(4)
+    # Deuxième ligne : 3 indicateurs (mortalité, IC, ROI)
+    cols2 = st.columns(5)
+
     metrics2 = [
+        ("Résultat Net", f"{c['resultat_net_fcfa']:+,.0f}", "FCFA", "#34d399" if c['resultat_net_fcfa']>=0 else "#f87171"),
+        ("Marge Nette/sujet", f"{marge_nette:+.0f}", "FCFA/sujet", "#34d399" if marge_nette >= 0 else "#f87171"),
+        ("Mortalité", f"{c['taux_mortalite_pct']:.2f}%", f"{c['mortalite_totale']:.0f} têtes", "#f87171" if c['taux_mortalite_pct']>4 else "#34d399"),
         ("Indice de Consommation (IC)", f"{ic_val:.2f}", "kg consommé / kg produit", "#fbbf24" if ic_val <= 1.9 else "#f87171"),
         ("ROI (Retour sur Invest.)", f"{roi:+.1f}%", "Résultat / Dépenses", "#34d399" if roi >= 0 else "#f87171"),
-        ("Prix de Revient", f"{prix_revient:,.0f}", "FCFA/sujet", "#a78bfa"),
-        ("Marge Brute/sujet", f"{marge_brute:+.0f}", "Prix - Revient", "#34d399" if marge_brute >= 0 else "#f87171"),
+        
     ]
+
     for col_w, (lbl, val, sub, acc) in zip(cols2, metrics2):
         with col_w:
             st.markdown(card(lbl, val, sub, acc), unsafe_allow_html=True)
@@ -807,10 +909,12 @@ elif page == "📊 Analyse par Cycle":
 
         # === INTERPRÉTATIONS ET RECOMMANDATIONS - JOURNALIER ===
         st.markdown("---")
-        st.markdown("### 📋 Interprétations et Recommandations")
 
         # Vérifier que les données existent
         if not j.empty and not v.empty:
+            
+            # Construction du texte HTML
+            texte_html = ""
             
             # 1. PREMIER JOUR DE VENTE
             jours_vente = v["jour"].unique()
@@ -818,49 +922,79 @@ elif page == "📊 Analyse par Cycle":
                 premier_vente = min(jours_vente)
                 
                 if premier_vente <= 38:
-                    st.markdown(f"✅ **Premier jour de vente : J{premier_vente}** — Bon rythme, vente précoce")
-                    st.markdown(f"   → **Recommandation :** Maintenir ce rythme de vente précoce")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📅 Premier jour de vente</strong><br>
+                    ✅ J{premier_vente} — Bon rythme, vente précoce<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir ce rythme de vente précoce<br><br>
+                    """
                 elif premier_vente <= 42:
-                    st.markdown(f"⚠️ **Premier jour de vente : J{premier_vente}** — Acceptable, mais pourrait être amélioré")
-                    st.markdown(f"   → **Recommandation :** Anticiper la commercialisation de 2-3 jours")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📅 Premier jour de vente</strong><br>
+                    ⚠️ J{premier_vente} — Acceptable, mais pourrait être amélioré<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Anticiper la commercialisation de 2-3 jours<br><br>
+                    """
                 else:
-                    st.markdown(f"❌ **Premier jour de vente : J{premier_vente}** — Trop tardif, risque de perte de marge")
-                    st.markdown(f"   → **Recommandation :** Contacter les acheteurs plus tôt, prospecter avant la fin du cycle")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📅 Premier jour de vente</strong><br>
+                    ❌ J{premier_vente} — Trop tardif, risque de perte de marge<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Contacter les acheteurs plus tôt, prospecter avant la fin du cycle<br><br>
+                    """
             
             # 2. PIC DE MORTALITÉ
             max_morts = j["morts_jour"].max() if not j.empty else 0
             effectif_init = j["effectif_restant"].iloc[0] if not j.empty else 1
-            seuil_mortalite_5 = effectif_init * 0.05  # 5% du lot
-            seuil_mortalite_10 = effectif_init * 0.10  # 10% du lot
+            seuil_mortalite_5 = effectif_init * 0.05
+            seuil_mortalite_10 = effectif_init * 0.10
             
             if max_morts > seuil_mortalite_10:
                 jour_max = j[j["morts_jour"] == max_morts]["jour"].iloc[0]
-                st.markdown(f"❌ **Pic de mortalité : {max_morts} morts au J{jour_max}** — Dépasse 10% du lot")
-                st.markdown(f"   → **Recommandation :** Consulter un vétérinaire, réviser le protocole vaccinal")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚠️ Pic de mortalité</strong><br>
+                ❌ {max_morts} morts au J{jour_max} — Dépasse 10% du lot<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Consulter un vétérinaire, réviser le protocole vaccinal<br><br>
+                """
             elif max_morts > seuil_mortalite_5:
                 jour_max = j[j["morts_jour"] == max_morts]["jour"].iloc[0]
-                st.markdown(f"⚠️ **Pic de mortalité : {max_morts} morts au J{jour_max}** — Dépasse 5% du lot")
-                st.markdown(f"   → **Recommandation :** Renforcer la biosécurité, vérifier la température et l'humidité")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚠️ Pic de mortalité</strong><br>
+                ⚠️ {max_morts} morts au J{jour_max} — Dépasse 5% du lot<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Renforcer la biosécurité, vérifier la température et l'humidité<br><br>
+                """
             else:
-                st.markdown(f"✅ **Pic de mortalité maîtrisé** — Maximum {max_morts} morts sur un jour")
-                st.markdown(f"   → **Recommandation :** Surveillance maintenue, pas d'action urgente")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚠️ Pic de mortalité</strong><br>
+                ✅ Pic de mortalité maîtrisé — Maximum {max_morts} morts sur un jour<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Surveillance maintenue, pas d'action urgente<br><br>
+                """
             
             # 3. RELIQUAT NON VENDU
             effectif_final = j["effectif_restant"].iloc[-1] if not j.empty else 0
             taux_reliquat = (effectif_final / effectif_init) * 100 if effectif_init > 0 else 0
             
             if taux_reliquat > 10:
-                st.markdown(f"❌ **Reliquat non vendu : {effectif_final} sujets ({taux_reliquat:.1f}%)** — Perte économique importante")
-                st.markdown(f"   → **Recommandation :** Revoir la stratégie commerciale, diversifier les circuits de vente")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">📦 Reliquat non vendu</strong><br>
+                ❌ {effectif_final} sujets ({taux_reliquat:.1f}%) — Perte économique importante<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Revoir la stratégie commerciale, diversifier les circuits de vente<br><br>
+                """
             elif taux_reliquat > 5:
-                st.markdown(f"⚠️ **Reliquat non vendu : {effectif_final} sujets ({taux_reliquat:.1f}%)** — À améliorer")
-                st.markdown(f"   → **Recommandation :** Proposer une remise de fin de cycle ou trouver des acheteurs de proximité")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">📦 Reliquat non vendu</strong><br>
+                ⚠️ {effectif_final} sujets ({taux_reliquat:.1f}%) — À améliorer<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Proposer une remise de fin de cycle ou trouver des acheteurs de proximité<br><br>
+                """
             elif taux_reliquat > 0:
-                st.markdown(f"🟢 **Reliquat faible : {effectif_final} sujets ({taux_reliquat:.1f}%)** — Acceptable")
-                st.markdown(f"   → **Recommandation :** Organiser des tournées de vente plus tôt pour libérer le bâtiment")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">📦 Reliquat non vendu</strong><br>
+                🟢 Reliquat faible : {effectif_final} sujets ({taux_reliquat:.1f}%) — Acceptable<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Organiser des tournées de vente plus tôt pour libérer le bâtiment<br><br>
+                """
             else:
-                st.markdown(f"✅ **Reliquat nul** — Tous les sujets ont été vendus")
-                st.markdown(f"   → **Recommandation :** Capitaliser sur cette bonne organisation commerciale")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">📦 Reliquat non vendu</strong><br>
+                ✅ Reliquat nul — Tous les sujets ont été vendus<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Capitaliser sur cette bonne organisation commerciale<br><br>
+                """
             
             # 4. ÉTALEMENT DES VENTES
             if len(jours_vente) >= 2:
@@ -869,15 +1003,28 @@ elif page == "📊 Analyse par Cycle":
                 etalement = dernier_vente - premier_vente
                 
                 if etalement <= 7:
-                    st.markdown(f"✅ **Étalement des ventes : {etalement} jours** — Logistique optimisée")
-                    st.markdown(f"   → **Recommandation :** Maintenir cette organisation logistique")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📊 Étalement des ventes</strong><br>
+                    ✅ {etalement} jours — Logistique optimisée<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir cette organisation logistique<br><br>
+                    """
                 elif etalement <= 10:
-                    st.markdown(f"🟡 **Étalement des ventes : {etalement} jours** — Correct, peut être amélioré")
-                    st.markdown(f"   → **Recommandation :** Regrouper certaines livraisons pour réduire les coûts de transport")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📊 Étalement des ventes</strong><br>
+                    🟡 {etalement} jours — Correct, peut être amélioré<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Regrouper certaines livraisons pour réduire les coûts de transport<br><br>
+                    """
                 else:
-                    st.markdown(f"⚠️ **Étalement des ventes : {etalement} jours** — Très étalé, perte d'efficacité")
-                    st.markdown(f"   → **Recommandation :** Planifier des ventes par lots (2 à 3 créneaux fixes par semaine)")
-            
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📊 Étalement des ventes</strong><br>
+                    ⚠️ {etalement} jours — Très étalé, perte d'efficacité<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Planifier des ventes par lots (2 à 3 créneaux fixes par semaine)<br><br>
+                    """
+          
+
+            # Afficher la carte unique
+            afficher_interpretation("📋 Journalier - Interprétations et Recommandations", texte_html)
+
         else:
             st.info("Données insuffisantes pour générer des interprétations")
     
@@ -932,11 +1079,11 @@ elif page == "📊 Analyse par Cycle":
         plotly_dark_layout(fig_p, "Évolution des Poids lors des Contrôles (kg)", 340)
         fig_p.update_layout(
             legend=dict(
-                orientation="h",
+                orientation="v",
                 yanchor="top",
-                y=-0.20,
+                y=-0.25,
                 xanchor="center",
-                x=0.5,
+                x=0.8,
                 bgcolor="rgba(20,23,32,0.8)",
                 bordercolor="#242838",
                 borderwidth=1,
@@ -982,10 +1129,11 @@ elif page == "📊 Analyse par Cycle":
 
         # === INTERPRÉTATIONS ET RECOMMANDATIONS - PESÉES & POIDS ===
         st.markdown("---")
-        st.markdown("### 📋 Interprétations et Recommandations")
 
         # Vérifier que les données de pesée existent
         if not pesees_graph.empty:
+            
+            texte_html = ""
             
             # 1. POIDS FINAL PAR RAPPORT À LA CIBLE
             poids_final = None
@@ -997,17 +1145,29 @@ elif page == "📊 Analyse par Cycle":
             
             if poids_final:
                 if poids_final >= 2.2:
-                    st.markdown(f"✅ **Poids final à J{jour_final} : {poids_final:.2f} kg** — Excellent poids, poulet lourd valorisable")
-                    st.markdown(f"   → **Recommandation :** Vendre comme poulet lourd (prix potentiellement plus élevé)")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">🍗 Poids final</strong><br>
+                    ✅ J{jour_final} : {poids_final:.2f} kg — Excellent poids, poulet lourd valorisable<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Vendre comme poulet lourd (prix potentiellement plus élevé)<br><br>
+                    """
                 elif poids_final >= 1.8:
-                    st.markdown(f"✅ **Poids final à J{jour_final} : {poids_final:.2f} kg** — Poids standard pour le marché")
-                    st.markdown(f"   → **Recommandation :** Maintenir cette performance")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">🍗 Poids final</strong><br>
+                    ✅ J{jour_final} : {poids_final:.2f} kg — Poids standard pour le marché<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir cette performance<br><br>
+                    """
                 else:
-                    st.markdown(f"⚠️ **Poids final à J{jour_final} : {poids_final:.2f} kg** — Poids insuffisant")
-                    st.markdown(f"   → **Recommandation :** Prolonger le cycle de 3 à 5 jours ou améliorer l'alimentation de finition")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">🍗 Poids final</strong><br>
+                    ⚠️ J{jour_final} : {poids_final:.2f} kg — Poids insuffisant<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Prolonger le cycle de 3 à 5 jours ou améliorer l'alimentation de finition<br><br>
+                    """
             else:
-                st.markdown(f"⚠️ **Données de poids final manquantes**")
-                st.markdown(f"   → **Recommandation :** Ajouter des pesées en fin de cycle")
+                texte_html += """
+                <strong style="color: #60a5fa;">🍗 Poids final</strong><br>
+                ⚠️ Données de poids final manquantes<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Ajouter des pesées en fin de cycle<br><br>
+                """
             
             # 2. ÉCART ENTRE POIDS DES PLUS LOURDS ET DES PLUS FAIBLES
             poids_faible = None
@@ -1021,19 +1181,27 @@ elif page == "📊 Analyse par Cycle":
                 uniformite = (poids_faible / poids_final) * 100 if poids_final > 0 else 0
                 
                 if ecart <= 0.3:
-                    st.markdown(f"✅ **Écart lourds/faibles : {ecart:.2f} kg** — Lot très homogène (uniformité {uniformite:.0f}%)")
-                    st.markdown(f"   → **Recommandation :** Maintenir cette homogénéité")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📊 Uniformité du lot</strong><br>
+                    ✅ Écart lourds/faibles : {ecart:.2f} kg — Lot très homogène (uniformité {uniformite:.0f}%)<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir cette homogénéité<br><br>
+                    """
                 elif ecart <= 0.6:
-                    st.markdown(f"🟢 **Écart lourds/faibles : {ecart:.2f} kg** — Homogénéité acceptable (uniformité {uniformite:.0f}%)")
-                    st.markdown(f"   → **Recommandation :** Surveiller l'alimentation et la densité")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📊 Uniformité du lot</strong><br>
+                    🟢 Écart lourds/faibles : {ecart:.2f} kg — Homogénéité acceptable (uniformité {uniformite:.0f}%)<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Surveiller l'alimentation et la densité<br><br>
+                    """
                 else:
-                    st.markdown(f"⚠️ **Écart lourds/faibles : {ecart:.2f} kg** — Lot hétérogène (uniformité {uniformite:.0f}%)")
-                    st.markdown(f"   → **Recommandation :** Trier les sujets par poids, ajuster la densité dans le poulailler")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📊 Uniformité du lot</strong><br>
+                    ⚠️ Écart lourds/faibles : {ecart:.2f} kg — Lot hétérogène (uniformité {uniformite:.0f}%)<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Trier les sujets par poids, ajuster la densité dans le poulailler<br><br>
+                    """
             
             # 3. COURBE DE CROISSANCE PAR RAPPORT AU STANDARD
             pesees_std = j[j["poids_standard"].notna()]
             if not pesees_std.empty and not pesees_graph.empty:
-                # Prendre le dernier poids standard disponible
                 poids_std_final = pesees_std["poids_standard"].iloc[-1] if not pesees_std["poids_standard"].isna().all() else None
                 jour_std = pesees_std["jour"].iloc[-1] if not pesees_std.empty else None
                 
@@ -1041,14 +1209,23 @@ elif page == "📊 Analyse par Cycle":
                     ecart_standard = poids_final - poids_std_final
                     
                     if ecart_standard > 0.1:
-                        st.markdown(f"✅ **Croissance vs standard (J{jour_std}) : +{ecart_standard:.2f} kg** — Croissance rapide")
-                        st.markdown(f"   → **Recommandation :** Capitaliser sur cette performance")
+                        texte_html += f"""
+                        <strong style="color: #60a5fa;">📈 Croissance vs standard</strong><br>
+                        ✅ J{jour_std} : +{ecart_standard:.2f} kg — Croissance rapide<br>
+                        <span style="color: #60a5fa;">🎯 Recommandation :</span> Capitaliser sur cette performance<br><br>
+                        """
                     elif ecart_standard >= -0.1:
-                        st.markdown(f"✅ **Croissance vs standard (J{jour_std}) : {ecart_standard:+.2f} kg** — Conforme aux attentes")
-                        st.markdown(f"   → **Recommandation :** Maintenir les pratiques actuelles")
+                        texte_html += f"""
+                        <strong style="color: #60a5fa;">📈 Croissance vs standard</strong><br>
+                        ✅ J{jour_std} : {ecart_standard:+.2f} kg — Conforme aux attentes<br>
+                        <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir les pratiques actuelles<br><br>
+                        """
                     else:
-                        st.markdown(f"⚠️ **Croissance vs standard (J{jour_std}) : {ecart_standard:+.2f} kg** — Retard de croissance")
-                        st.markdown(f"   → **Recommandation :** Vérifier la qualité de l'aliment et les conditions d'élevage")
+                        texte_html += f"""
+                        <strong style="color: #60a5fa;">📈 Croissance vs standard</strong><br>
+                        ⚠️ J{jour_std} : {ecart_standard:+.2f} kg — Retard de croissance<br>
+                        <span style="color: #60a5fa;">🎯 Recommandation :</span> Vérifier la qualité de l'aliment et les conditions d'élevage<br><br>
+                        """
             
             # 4. PROGRESSION DU POIDS (GAIN QUOTIDIEN)
             if not pesees_graph.empty and len(pesees_graph) >= 2:
@@ -1063,18 +1240,26 @@ elif page == "📊 Analyse par Cycle":
                         gain_quotidien = (poids_fin_periode - poids_debut) / (jours_fin_periode - jours_debut)
                         
                         if gain_quotidien >= 0.055:
-                            st.markdown(f"✅ **Gain quotidien moyen : {gain_quotidien:.3f} kg/jour** — Excellente progression")
-                            st.markdown(f"   → **Recommandation :** Maintenir ce rythme de croissance")
+                            texte_html += f"""
+                            <strong style="color: #60a5fa;">📈 Gain quotidien</strong><br>
+                            ✅ {gain_quotidien:.3f} kg/jour — Excellente progression<br>
+                            <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir ce rythme de croissance<br><br>
+                            """
                         elif gain_quotidien >= 0.045:
-                            st.markdown(f"🟢 **Gain quotidien moyen : {gain_quotidien:.3f} kg/jour** — Bonne progression")
-                            st.markdown(f"   → **Recommandation :** Surveiller l'alimentation de finition")
+                            texte_html += f"""
+                            <strong style="color: #60a5fa;">📈 Gain quotidien</strong><br>
+                            🟢 {gain_quotidien:.3f} kg/jour — Bonne progression<br>
+                            <span style="color: #60a5fa;">🎯 Recommandation :</span> Surveiller l'alimentation de finition<br><br>
+                            """
                         else:
-                            st.markdown(f"⚠️ **Gain quotidien moyen : {gain_quotidien:.3f} kg/jour** — Progression lente")
-                            st.markdown(f"   → **Recommandation :** Améliorer la qualité de l'aliment, vérifier l'absence de stress")
+                            texte_html += f"""
+                            <strong style="color: #60a5fa;">📈 Gain quotidien</strong><br>
+                            ⚠️ {gain_quotidien:.3f} kg/jour — Progression lente<br>
+                            <span style="color: #60a5fa;">🎯 Recommandation :</span> Améliorer la qualité de l'aliment, vérifier l'absence de stress<br><br>
+                            """
                 
                 # Vérifier le ralentissement en fin de cycle
                 if len(premiers_jours) >= 4:
-                    # Comparer début et fin
                     milieu = len(premiers_jours) // 2
                     debut = premiers_jours.head(milieu)
                     fin = premiers_jours.tail(milieu)
@@ -1084,24 +1269,39 @@ elif page == "📊 Analyse par Cycle":
                         gain_fin = (fin["poids_10plus"].iloc[-1] - fin["poids_10plus"].iloc[0]) / (fin["jour"].iloc[-1] - fin["jour"].iloc[0])
                         
                         if gain_fin < gain_debut * 0.5:
-                            st.markdown(f"⚠️ **Ralentissement en fin de cycle** — Gain réduit de {gain_debut:.3f} à {gain_fin:.3f} kg/jour")
-                            st.markdown(f"   → **Recommandation :** Renforcer l'alimentation de finition")
+                            texte_html += f"""
+                            <strong style="color: #60a5fa;">⚠️ Ralentissement en fin de cycle</strong><br>
+                            Gain réduit de {gain_debut:.3f} à {gain_fin:.3f} kg/jour<br>
+                            <span style="color: #60a5fa;">🎯 Recommandation :</span> Renforcer l'alimentation de finition<br><br>
+                            """
             
             # 5. NOMBRE DE PESÉES EFFECTUÉES
             nb_pesees = len(pesees_graph[pesees_graph["poids_10plus"].notna()])
             
             if nb_pesees >= 7:
-                st.markdown(f"✅ **Nombre de pesées : {nb_pesees}** — Suivi rigoureux, excellente pratique")
-                st.markdown(f"   → **Recommandation :** Continuer ce suivi régulier")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚖️ Fréquence des pesées</strong><br>
+                ✅ {nb_pesees} pesées — Suivi rigoureux, excellente pratique<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Continuer ce suivi régulier<br><br>
+                """
             elif nb_pesees >= 5:
-                st.markdown(f"🟢 **Nombre de pesées : {nb_pesees}** — Suivi correct")
-                st.markdown(f"   → **Recommandation :** Idéalement 6-8 pesées par cycle pour un meilleur suivi")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚖️ Fréquence des pesées</strong><br>
+                🟢 {nb_pesees} pesées — Suivi correct<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Idéalement 6-8 pesées par cycle pour un meilleur suivi<br><br>
+                """
             elif nb_pesees >= 3:
-                st.markdown(f"🟡 **Nombre de pesées : {nb_pesees}** — Suivi minimal acceptable")
-                st.markdown(f"   → **Recommandation :** Augmenter la fréquence des pesées (au moins 5 par cycle)")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚖️ Fréquence des pesées</strong><br>
+                🟡 {nb_pesees} pesées — Suivi minimal acceptable<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Augmenter la fréquence des pesées (au moins 5 par cycle)<br><br>
+                """
             else:
-                st.markdown(f"⚠️ **Nombre de pesées : {nb_pesees}** — Suivi insuffisant")
-                st.markdown(f"   → **Recommandation :** Programmer des pesées régulières (tous les 5-7 jours)")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">⚖️ Fréquence des pesées</strong><br>
+                ⚠️ {nb_pesees} pesées — Suivi insuffisant<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Programmer des pesées régulières (tous les 5-7 jours)<br><br>
+                """
             
             # 6. ESPACEMENT ENTRE LES PESÉES
             if nb_pesees >= 2:
@@ -1110,16 +1310,27 @@ elif page == "📊 Analyse par Cycle":
                 ecart_moyen = sum(ecarts) / len(ecarts) if ecarts else 0
                 
                 if ecart_moyen <= 5:
-                    st.markdown(f"✅ **Espacement moyen entre pesées : {ecart_moyen:.0f} jours** — Très bon suivi")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📅 Espacement des pesées</strong><br>
+                    ✅ {ecart_moyen:.0f} jours en moyenne — Très bon suivi<br><br>
+                    """
                 elif ecart_moyen <= 7:
-                    st.markdown(f"🟢 **Espacement moyen entre pesées : {ecart_moyen:.0f} jours** — Suivi correct")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📅 Espacement des pesées</strong><br>
+                    🟢 {ecart_moyen:.0f} jours en moyenne — Suivi correct<br><br>
+                    """
                 else:
-                    st.markdown(f"⚠️ **Espacement moyen entre pesées : {ecart_moyen:.0f} jours** — Trop espacé")
-                    st.markdown(f"   → **Recommandation :** Rapprocher les pesées (tous les 5-7 jours max)")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📅 Espacement des pesées</strong><br>
+                    ⚠️ {ecart_moyen:.0f} jours en moyenne — Trop espacé<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Rapprocher les pesées (tous les 5-7 jours max)<br><br>
+                    """
+            
+            # Afficher la carte unique
+            afficher_interpretation("🥩 Pesées & Poids - Interprétations et Recommandations", texte_html)
 
         else:
             st.info("Données de pesée insuffisantes pour générer des interprétations")
-
 
 
     with tab3:
@@ -1174,145 +1385,205 @@ elif page == "📊 Analyse par Cycle":
 
         # === INTERPRÉTATIONS ET RECOMMANDATIONS - FINANCES ===
         st.markdown("---")
-        st.markdown("### 📋 Interprétations et Recommandations Financières")
 
         # Vérifier que les données financières existent
         if c.get("ca_fcfa", 0) > 0:
 
-            # 1. RENTABILITÉ GLOBALE
+            # Récupération des données
             ca = c.get("ca_fcfa", 0)
             depenses = c.get("depenses_totales_fcfa", 0)
             resultat = c.get("resultat_net_fcfa", 0)
             marge = c.get("marge_unitaire_fcfa", 0)
             volume = c.get("volume_vendu", 0)
-            
-            if resultat > 0:
-                st.markdown(f"✅ **Résultat net : {resultat:+,.0f} FCFA** — Cycle rentable")
-                st.markdown(f"   → **Recommandation :** Capitaliser sur les bonnes pratiques de ce cycle")
-            elif resultat < 0:
-                st.markdown(f"❌ **Résultat net : {resultat:+,.0f} FCFA** — Cycle déficitaire")
-                st.markdown(f"   → **Recommandation :** Identifier et réduire les postes de coûts les plus élevés")
-            else:
-                st.markdown(f"🟡 **Résultat net : équilibre** — Cycle à l'équilibre")
-                st.markdown(f"   → **Recommandation :** Améliorer la marge pour dégager du bénéfice")
-
-            # 2. MARGE UNITAIRE
-            if marge > 200:
-                st.markdown(f"✅ **Marge unitaire : {marge:+.0f} FCFA/sujet** — Bonne rentabilité par tête")
-                st.markdown(f"   → **Recommandation :** Maintenir ce niveau de marge")
-            elif marge > 0:
-                st.markdown(f"🟡 **Marge unitaire : {marge:+.0f} FCFA/sujet** — Faible, risque en cas de variation des prix")
-                st.markdown(f"   → **Recommandation :** Augmenter le prix de vente ou réduire les coûts variables (aliment, poussins)")
-            elif marge < 0:
-                st.markdown(f"❌ **Marge unitaire : {marge:+.0f} FCFA/sujet** — Perte par sujet vendu")
-                st.markdown(f"   → **Recommandation :** Action prioritaire, revoir la stratégie commerciale")
-            else:
-                st.markdown(f"🟡 **Marge unitaire : équilibre**")
-                st.markdown(f"   → **Recommandation :** Viser au moins 200 FCFA de marge par sujet")
-
-            # 3. POIDS DE L'ALIMENT DANS LES CHARGES
             cout_aliment = c.get("cout_aliment_fcfa", 0)
             cout_poussins = c.get("cout_poussins_fcfa", 0)
             cout_salaires = c.get("cout_salaires_fcfa", 0)
             cout_loyer = c.get("cout_loyer_fcfa", 0)
+            prix_vente = c.get("prix_moyen_fcfa", 0)
+            seuil = c.get("seuil_rentabilite_fcfa", 0)
+            point_mort = c.get("point_mort_jours", 0)
+            roi = c.get("roi_pct", 0)
             
+            texte_html = ""
+            
+            # 1. RENTABILITÉ GLOBALE
+            if resultat > 0:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💰 Rentabilité globale</strong><br>
+                ✅ Résultat net : {resultat:+,.0f} FCFA — Cycle rentable<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Capitaliser sur les bonnes pratiques de ce cycle<br><br>
+                """
+            elif resultat < 0:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💰 Rentabilité globale</strong><br>
+                ❌ Résultat net : {resultat:+,.0f} FCFA — Cycle déficitaire<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Identifier et réduire les postes de coûts les plus élevés<br><br>
+                """
+            else:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💰 Rentabilité globale</strong><br>
+                🟡 Résultat net : équilibre — Cycle à l'équilibre<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Améliorer la marge pour dégager du bénéfice<br><br>
+                """
+            
+            # 2. MARGE UNITAIRE
+            if marge > 200:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💵 Marge unitaire</strong><br>
+                ✅ {marge:+.0f} FCFA/sujet — Bonne rentabilité par tête<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir ce niveau de marge<br><br>
+                """
+            elif marge > 0:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💵 Marge unitaire</strong><br>
+                🟡 {marge:+.0f} FCFA/sujet — Faible, risque en cas de variation des prix<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Augmenter le prix de vente ou réduire les coûts variables (aliment, poussins)<br><br>
+                """
+            elif marge < 0:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💵 Marge unitaire</strong><br>
+                ❌ {marge:+.0f} FCFA/sujet — Perte par sujet vendu<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Action prioritaire, revoir la stratégie commerciale<br><br>
+                """
+            else:
+                texte_html += f"""
+                <strong style="color: #60a5fa;">💵 Marge unitaire</strong><br>
+                🟡 Marge unitaire : équilibre<br>
+                <span style="color: #60a5fa;">🎯 Recommandation :</span> Viser au moins 200 FCFA de marge par sujet<br><br>
+                """
+            
+            # 3. STRUCTURE DES COÛTS
             if depenses > 0:
                 part_aliment = (cout_aliment / depenses) * 100
                 part_poussins = (cout_poussins / depenses) * 100
                 part_fixes = ((cout_salaires + cout_loyer) / depenses) * 100
                 
-                st.markdown(f"**📊 Structure des coûts :**")
-                st.markdown(f"- Aliment : **{part_aliment:.1f}%** des dépenses")
-                st.markdown(f"- Poussins : **{part_poussins:.1f}%** des dépenses")
-                st.markdown(f"- Salaires + Loyer : **{part_fixes:.1f}%** des dépenses")
+                texte_html += f"""
+                <strong style="color: #60a5fa;">📊 Structure des coûts</strong><br>
+                • Aliment : {part_aliment:.1f}% des dépenses<br>
+                • Poussins : {part_poussins:.1f}% des dépenses<br>
+                • Salaires + Loyer : {part_fixes:.1f}% des dépenses<br>
+                """
                 
                 if part_aliment > 50:
-                    st.markdown(f"   → ⚠️ **Aliment trop élevé** : Renégocier le prix des sacs (18 000 FCFA), réduire le gaspillage")
+                    texte_html += f"""<span style="color: #60a5fa;">🎯 Recommandation :</span> ⚠️ Aliment trop élevé — Renégocier le prix des sacs (18 000 FCFA), réduire le gaspillage<br><br>"""
                 elif part_aliment > 45:
-                    st.markdown(f"   → 🟡 **Aliment correct** : Surveiller ce poste")
+                    texte_html += f"""<span style="color: #60a5fa;">🎯 Recommandation :</span> 🟡 Aliment correct — Surveiller ce poste<br><br>"""
                 else:
-                    st.markdown(f"   → ✅ **Aliment maîtrisé** : Maintenir la qualité tout en surveillant les prix")
+                    texte_html += f"""<span style="color: #60a5fa;">🎯 Recommandation :</span> ✅ Aliment maîtrisé — Maintenir la qualité tout en surveillant les prix<br><br>"""
                 
                 if part_fixes > 30 and volume < 2000:
-                    st.markdown(f"   → ⚠️ **Charges fixes lourdes pour ce volume** : Envisager d'augmenter la taille des cycles")
+                    texte_html += f"""<span style="color: #60a5fa;">🎯 Recommandation :</span> ⚠️ Charges fixes lourdes pour ce volume — Envisager d'augmenter la taille des cycles<br><br>"""
                 elif part_fixes > 30:
-                    st.markdown(f"   → 🟡 **Charges fixes élevées** : Optimiser l'organisation (mutualisation, sous-traitance)")
+                    texte_html += f"""<span style="color: #60a5fa;">🎯 Recommandation :</span> 🟡 Charges fixes élevées — Optimiser l'organisation (mutualisation, sous-traitance)<br><br>"""
                 elif part_fixes < 20:
-                    st.markdown(f"   → ✅ **Charges fixes maîtrisées**")
-
+                    texte_html += f"""<span style="color: #60a5fa;">🎯 Recommandation :</span> ✅ Charges fixes maîtrisées<br><br>"""
+            
             # 4. PRIX DE VENTE VS PRIX DE REVIENT
-            prix_vente = c.get("prix_moyen_fcfa", 0)
             prix_revient = depenses / volume if volume > 0 else 0
             
             if prix_vente > 0 and prix_revient > 0:
                 ecart_prix = prix_vente - prix_revient
                 
                 if ecart_prix > 300:
-                    st.markdown(f"✅ **Marge brute : {ecart_prix:.0f} FCFA/sujet** — Bonne valorisation")
-                    st.markdown(f"   → **Recommandation :** Maintenir ce positionnement prix")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">💰 Prix de vente vs Prix de revient</strong><br>
+                    ✅ Marge Nette : {ecart_prix:.0f} FCFA/sujet — Bonne valorisation<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir ce positionnement prix<br><br>
+                    """
                 elif ecart_prix > 0:
-                    st.markdown(f"🟢 **Marge brute : {ecart_prix:.0f} FCFA/sujet** — Marge brute insuffisante")
-                    st.markdown(f"   → **Recommandation :** Augmenter le prix ou réduire les coûts de production")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">💰 Prix de vente vs Prix de revient</strong><br>
+                    🟢 Marge Nette : {ecart_prix:.0f} FCFA/sujet — Marge Nette insuffisante<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Augmenter le prix ou réduire les coûts de production<br><br>
+                    """
                 else:
-                    st.markdown(f"❌ **Marge brute négative** — Prix de vente ({prix_vente:.0f} FCFA) inférieur au prix de revient ({prix_revient:.0f} FCFA)")
-                    st.markdown(f"   → **Recommandation :** Priorité absolue : revoir le positionnement prix")
-
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">💰 Prix de vente vs Prix de revient</strong><br>
+                    ❌ Marge Nette négative — Prix de vente ({prix_vente:.0f} FCFA) inférieur au prix de revient ({prix_revient:.0f} FCFA)<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Priorité absolue : revoir le positionnement prix<br><br>
+                    """
+            
             # 5. SEUIL DE RENTABILITÉ (si disponible)
-            seuil = c.get("seuil_rentabilite_fcfa", 0)
             if seuil > 0:
                 if ca >= seuil:
-                    st.markdown(f"✅ **Seuil de rentabilité atteint** — CA ({ca/1e6:.1f} M FCFA) ≥ Seuil ({seuil/1e6:.1f} M FCFA)")
-                    st.markdown(f"   → **Recommandation :** Maintenir ce niveau d'activité")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">🎯 Seuil de rentabilité</strong><br>
+                    ✅ Atteint — CA ({ca/1e6:.1f} M FCFA) ≥ Seuil ({seuil/1e6:.1f} M FCFA)<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir ce niveau d'activité<br><br>
+                    """
                 else:
                     ecart_seuil = seuil - ca
-                    st.markdown(f"⚠️ **Seuil de rentabilité non atteint** — Manque {ecart_seuil/1e6:.1f} M FCFA")
-                    st.markdown(f"   → **Recommandation :** Augmenter le volume ou la marge unitaire")
-
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">🎯 Seuil de rentabilité</strong><br>
+                    ⚠️ Non atteint — Manque {ecart_seuil/1e6:.1f} M FCFA<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Augmenter le volume ou la marge unitaire<br><br>
+                    """
+            
             # 6. POINT MORT (si disponible)
-            point_mort = c.get("point_mort_jours", 0)
             if point_mort > 0:
                 if point_mort <= 53:
-                    st.markdown(f"✅ **Point mort : J{point_mort:.0f}** — Rentabilité atteinte pendant le cycle")
-                    st.markdown(f"   → **Recommandation :** Bonne performance, maintenir")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">⏱️ Point mort</strong><br>
+                    ✅ J{point_mort:.0f} — Rentabilité atteinte pendant le cycle<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Bonne performance, maintenir<br><br>
+                    """
                 else:
-                    st.markdown(f"⚠️ **Point mort : J{point_mort:.0f}** — Jamais rentable sur la durée du cycle (53j)")
-                    st.markdown(f"   → **Recommandation :** Réduire les charges fixes ou améliorer la marge")
-
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">⏱️ Point mort</strong><br>
+                    ⚠️ J{point_mort:.0f} — Jamais rentable sur la durée du cycle (53j)<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Réduire les charges fixes ou améliorer la marge<br><br>
+                    """
+            
             # 7. ROI (si disponible)
-            roi = c.get("roi_pct", 0)
             if roi != 0:
                 if roi > 10:
-                    st.markdown(f"✅ **ROI : {roi:+.1f}%** — Très bon retour sur investissement")
-                    st.markdown(f"   → **Recommandation :** Capitaliser sur cette performance")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📈 ROI (Retour sur Investissement)</strong><br>
+                    ✅ {roi:+.1f}% — Très bon retour sur investissement<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Capitaliser sur cette performance<br><br>
+                    """
                 elif roi > 0:
-                    st.markdown(f"🟢 **ROI : {roi:+.1f}%** — Retour faible mais positif")
-                    st.markdown(f"   → **Recommandation :** Améliorer la rentabilité")
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📈 ROI (Retour sur Investissement)</strong><br>
+                    🟢 {roi:+.1f}% — Retour faible mais positif<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Améliorer la rentabilité<br><br>
+                    """
                 else:
-                    st.markdown(f"❌ **ROI : {roi:+.1f}%** — Investissement non rentable")
-                    st.markdown(f"   → **Recommandation :** Avant tout nouveau cycle, revoir les coûts ou le prix de vente")
-
+                    texte_html += f"""
+                    <strong style="color: #60a5fa;">📈 ROI (Retour sur Investissement)</strong><br>
+                    ❌ {roi:+.1f}% — Investissement non rentable<br>
+                    <span style="color: #60a5fa;">🎯 Recommandation :</span> Avant tout nouveau cycle, revoir les coûts ou le prix de vente<br><br>
+                    """
+            
             # 8. RÉCAPITULATIF DES ACTIONS PRIORITAIRES
-            st.markdown("---")
-            st.markdown("### 🎯 Actions prioritaires")
+            texte_html += """
+            <strong style="color: #60a5fa;">🎯 Actions prioritaires</strong><br>
+            """
             
             actions = []
             
             if resultat < 0:
-                actions.append("🔴 **Rétablir la rentabilité** (priorité absolue)")
-            if part_aliment > 50:
-                actions.append("🟠 **Réduire le coût alimentaire** (18 000 FCFA/sac est élevé)")
+                actions.append("🔴 Rétablir la rentabilité (priorité absolue)")
+            if 'part_aliment' in locals() and part_aliment > 50:
+                actions.append("🟠 Réduire le coût alimentaire (18 000 FCFA/sac est élevé)")
             if prix_vente < 2600:
-                actions.append("🟠 **Augmenter le prix de vente** (cibler 2 700-2 800 FCFA/sujet)")
-            if part_fixes > 30 and volume < 2000:
-                actions.append("🟡 **Augmenter le volume** pour diluer les charges fixes")
+                actions.append("🟠 Augmenter le prix de vente (cibler 2 700-2 800 FCFA/sujet)")
+            if 'part_fixes' in locals() and part_fixes > 30 and volume < 2000:
+                actions.append("🟡 Augmenter le volume pour diluer les charges fixes")
             if marge < 0:
-                actions.append("🟡 **Améliorer la marge unitaire** (agir sur prix ou coûts)")
+                actions.append("🟡 Améliorer la marge unitaire (agir sur prix ou coûts)")
             
             if actions:
                 for action in actions:
-                    st.markdown(f"- {action}")
+                    texte_html += f"• {action}<br>"
             else:
-                st.markdown("✅ **Tous les indicateurs sont dans le vert** — Félicitations !")
+                texte_html += "✅ Tous les indicateurs sont dans le vert — Félicitations !<br>"
+            
+            texte_html += "<br>"
+            
+            # Afficher la carte unique
+            afficher_interpretation("💸 Finances - Interprétations et Recommandations", texte_html)
 
         else:
             st.info("Données financières insuffisantes pour générer des interprétations")
@@ -1323,7 +1594,7 @@ elif page == "📊 Analyse par Cycle":
 # ═══════════════════════════════════════════════════
 elif page == "💰 Ventes & Prix":
 
-    st.markdown('<div class="section-header">Analyse des Ventes & Structure des Prix</div>', unsafe_allow_html=True)
+    section_header("💰 Analyse des Ventes & Structure des Prix", "Évolution des prix, volumes et chiffre d'affaires")
 
     col1, col2 = st.columns(2)
 
@@ -1442,157 +1713,156 @@ elif page == "💰 Ventes & Prix":
             
             # === INTERPRÉTATIONS ET RECOMMANDATIONS ===
             st.markdown("---")
-            st.markdown("### 📋 Interprétations et Recommandations")
-            
+
             # Récupérer les données du cycle
             v_cycle = ventes[ventes["cycle_id"] == cid].copy()
             c_cycle = cycles_recap[cycles_recap["cycle_id"] == cid].iloc[0] if len(cycles_recap[cycles_recap["cycle_id"] == cid]) > 0 else None
-            
+
             if not v_cycle.empty and c_cycle is not None:
                 
-                # 1. ANALYSE DU PRIX UNITAIRE
-                st.markdown("#### 💰 Évolution du prix unitaire")
+                texte_html = ""
                 
+                # 1. ANALYSE DU PRIX UNITAIRE
                 prix_min = v_cycle["prix_unitaire"].min()
                 prix_max = v_cycle["prix_unitaire"].max()
                 prix_moy = v_cycle["prix_unitaire"].mean()
                 
+                texte_html += '<strong style="color: #60a5fa;">💰 Évolution du prix unitaire</strong><br>'
+                
                 if prix_max - prix_min < 200:
-                    st.markdown(f"✅ **Prix stable** ({prix_moy:.0f} FCFA) — bonne stratégie commerciale")
-                    st.markdown(f"   → **Recommandation :** Maintenir cette stratégie")
+                    texte_html += f'✅ Prix stable ({prix_moy:.0f} FCFA) — bonne stratégie commerciale<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir cette stratégie<br><br>'
                 elif prix_max - prix_min < 400:
-                    st.markdown(f"🟡 **Prix en légère variation** ({prix_min:.0f} → {prix_max:.0f} FCFA)")
-                    st.markdown(f"   → **Recommandation :** Surveiller les baisses de prix en fin de cycle")
+                    texte_html += f'🟡 Prix en légère variation ({prix_min:.0f} → {prix_max:.0f} FCFA)<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Surveiller les baisses de prix en fin de cycle<br><br>'
                 else:
-                    st.markdown(f"⚠️ **Forte variation de prix** ({prix_min:.0f} → {prix_max:.0f} FCFA)")
-                    st.markdown(f"   → **Recommandation :** Analyser les causes (client, période, qualité)")
+                    texte_html += f'⚠️ Forte variation de prix ({prix_min:.0f} → {prix_max:.0f} FCFA)<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Analyser les causes (client, période, qualité)<br><br>'
                 
                 if prix_moy < 2600:
-                    st.markdown(f"   → ⚠️ **Prix moyen bas ({prix_moy:.0f} FCFA)** : Négocier avec les acheteurs, diversifier les débouchés")
+                    texte_html += f'⚠️ Prix moyen bas ({prix_moy:.0f} FCFA) : Négocier avec les acheteurs, diversifier les débouchés<br><br>'
                 elif prix_moy > 2700:
-                    st.markdown(f"   → ✅ **Bon prix moyen ({prix_moy:.0f} FCFA)** : Maintenir cette stratégie")
+                    texte_html += f'✅ Bon prix moyen ({prix_moy:.0f} FCFA) : Maintenir cette stratégie<br><br>'
                 
                 # 2. ANALYSE DU VOLUME VENDU
-                st.markdown("#### 📊 Dynamique des ventes")
-                
                 v_sort = v_cycle.sort_values("jour").copy()
                 premier_vente = v_sort["jour"].min()
                 dernier_vente = v_sort["jour"].max()
                 volume_total = v_sort["quantite"].sum()
                 
-                # Calculer la pente (ventes par jour)
                 if dernier_vente > premier_vente:
                     pente = volume_total / (dernier_vente - premier_vente)
                 else:
                     pente = volume_total
                 
-                st.markdown(f"- Premier jour de vente : **J{premier_vente}**")
-                st.markdown(f"- Dernier jour de vente : **J{dernier_vente}**")
-                st.markdown(f"- Volume total vendu : **{volume_total}** sujets")
+                texte_html += '<strong style="color: #60a5fa;">📊 Dynamique des ventes</strong><br>'
+                texte_html += f'• Premier jour de vente : <strong>J{premier_vente}</strong><br>'
+                texte_html += f'• Dernier jour de vente : <strong>J{dernier_vente}</strong><br>'
+                texte_html += f'• Volume total vendu : <strong>{volume_total}</strong> sujets<br>'
                 
                 if pente > 30:
-                    st.markdown(f"   → ✅ **Ventes rapides** ({pente:.0f} sujets/jour) — bonne demande")
-                    st.markdown(f"   → **Recommandation :** Capitaliser sur cette dynamique")
+                    texte_html += f'✅ Ventes rapides ({pente:.0f} sujets/jour) — bonne demande<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Capitaliser sur cette dynamique<br><br>'
                 elif pente > 15:
-                    st.markdown(f"   → 🟡 **Ventes correctes** ({pente:.0f} sujets/jour) — écoulement acceptable")
-                    st.markdown(f"   → **Recommandation :** Améliorer la prospection")
+                    texte_html += f'🟡 Ventes correctes ({pente:.0f} sujets/jour) — écoulement acceptable<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Améliorer la prospection<br><br>'
                 else:
-                    st.markdown(f"   → ⚠️ **Ventes lentes** ({pente:.0f} sujets/jour) — démarchage à renforcer")
-                    st.markdown(f"   → **Recommandation :** Contacter les acheteurs plus tôt dans le cycle")
+                    texte_html += f'⚠️ Ventes lentes ({pente:.0f} sujets/jour) — démarchage à renforcer<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Contacter les acheteurs plus tôt dans le cycle<br><br>'
                 
                 # 3. ANALYSE DU CA
-                st.markdown("#### 💵 Progression du chiffre d'affaires")
-                
                 ca_total = v_cycle["prix_total"].sum()
                 ca_par_jour = ca_total / len(v_cycle) if len(v_cycle) > 0 else 0
                 
-                st.markdown(f"**CA total** : **{ca_total/1e6:.2f} M FCFA**")
+                texte_html += '<strong style="color: #60a5fa;">💵 Progression du chiffre d\'affaires</strong><br>'
+                texte_html += f'CA total : <strong>{ca_total/1e6:.2f} M FCFA</strong><br>'
                 
                 if premier_vente <= 38:
-                    st.markdown(f"   → ✅ **Démarrage précoce des ventes (J{premier_vente})** — bonne trésorerie")
-                    st.markdown(f"   → **Recommandation :** Maintenir ce rythme")
+                    texte_html += f'✅ Démarrage précoce des ventes (J{premier_vente}) — bonne trésorerie<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir ce rythme<br><br>'
                 else:
-                    st.markdown(f"   → ⚠️ **Démarrage tardif des ventes (J{premier_vente})** — risque de tension de trésorerie")
-                    st.markdown(f"   → **Recommandation :** Anticiper les ventes")
+                    texte_html += f'⚠️ Démarrage tardif des ventes (J{premier_vente}) — risque de tension de trésorerie<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Anticiper les ventes<br><br>'
                 
                 if ca_par_jour > 500000:
-                    st.markdown(f"   → ✅ **CA moyen élevé par jour de vente : {ca_par_jour/1e3:.0f} K FCFA**")
+                    texte_html += f'✅ CA moyen élevé par jour de vente : {ca_par_jour/1e3:.0f} K FCFA<br><br>'
                 elif ca_par_jour < 200000:
-                    st.markdown(f"   → ⚠️ **CA moyen faible par jour de vente : {ca_par_jour/1e3:.0f} K FCFA**")
-                    st.markdown(f"   → **Recommandation :** Regrouper les livraisons ou augmenter les volumes par vente")
+                    texte_html += f'⚠️ CA moyen faible par jour de vente : {ca_par_jour/1e3:.0f} K FCFA<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Regrouper les livraisons ou augmenter les volumes par vente<br><br>'
                 
                 # 4. ANALYSE DES PICS DE VENTE
-                st.markdown("#### 📈 Pics de vente et concentration")
-                
                 max_vente = v_cycle["quantite"].max()
                 jour_max = v_cycle[v_cycle["quantite"] == max_vente]["jour"].iloc[0]
                 ratio_max = (max_vente / volume_total) * 100 if volume_total > 0 else 0
                 
-                st.markdown(f"- Plus gros pic : **{max_vente}** sujets au **J{jour_max}** ({ratio_max:.0f}% du total)")
+                texte_html += '<strong style="color: #60a5fa;">📈 Pics de vente et concentration</strong><br>'
+                texte_html += f'• Plus gros pic : <strong>{max_vente}</strong> sujets au <strong>J{jour_max}</strong> ({ratio_max:.0f}% du total)<br>'
                 
                 if ratio_max > 40:
-                    st.markdown(f"   → ⚠️ **Forte dépendance à un seul pic** — risque commercial")
-                    st.markdown(f"   → **Recommandation :** Diversifier les clients pour réduire le risque")
+                    texte_html += f'⚠️ Forte dépendance à un seul pic — risque commercial<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Diversifier les clients pour réduire le risque<br><br>'
                 elif ratio_max > 25:
-                    st.markdown(f"   → 🟡 **Concentration modérée**")
-                    st.markdown(f"   → **Recommandation :** Éviter de trop dépendre d'un seul acheteur")
+                    texte_html += f'🟡 Concentration modérée<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Éviter de trop dépendre d\'un seul acheteur<br><br>'
                 else:
-                    st.markdown(f"   → ✅ **Ventes bien réparties** — clientèle diversifiée")
-                    st.markdown(f"   → **Recommandation :** Maintenir cette diversification")
+                    texte_html += f'✅ Ventes bien réparties — clientèle diversifiée<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Maintenir cette diversification<br><br>'
                 
                 # 5. RELIQUAT ET FIN DE CYCLE
-                st.markdown("#### 🏁 Fin de cycle")
-                
                 effectif_final = c_cycle["effectif_final"]
                 effectif_initial = c_cycle["effectif_initial"]
                 taux_reliquat = (effectif_final / effectif_initial) * 100 if effectif_initial > 0 else 0
                 
-                st.markdown(f"**Reliquat non vendu** : **{effectif_final}** sujets ({taux_reliquat:.1f}%)")
+                texte_html += '<strong style="color: #60a5fa;">🏁 Fin de cycle</strong><br>'
+                texte_html += f'Reliquat non vendu : <strong>{effectif_final}</strong> sujets ({taux_reliquat:.1f}%)<br>'
                 
                 if taux_reliquat > 5:
-                    st.markdown(f"   → ⚠️ **Reliquat élevé** — perte économique")
-                    st.markdown(f"   → **Recommandation :** Vendre en plus petits lots en fin de cycle")
+                    texte_html += f'⚠️ Reliquat élevé — perte économique<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Vendre en plus petits lots en fin de cycle<br><br>'
                 elif taux_reliquat > 0:
-                    st.markdown(f"   → 🟡 **Reliquat faible mais existant**")
-                    st.markdown(f"   → **Recommandation :** Écouler les derniers sujets avec une remise légère")
+                    texte_html += f'🟡 Reliquat faible mais existant<br>'
+                    texte_html += f'<span style="color: #60a5fa;">🎯 Recommandation :</span> Écouler les derniers sujets avec une remise légère<br><br>'
                 else:
-                    st.markdown(f"   → ✅ **Aucun reliquat** — bonne gestion commerciale")
+                    texte_html += f'✅ Aucun reliquat — bonne gestion commerciale<br><br>'
                 
                 # 6. SYNTHÈSE DES ACTIONS PRIORITAIRES
-                st.markdown("---")
-                st.markdown("### 🎯 Actions prioritaires")
-
+                texte_html += '<strong style="color: #60a5fa;">🎯 Actions prioritaires</strong><br>'
+                
                 actions = []
-
+                
                 if prix_moy < 2600:
-                    actions.append(f"🟠 **Prix de vente** : Augmenter le prix (actuellement {prix_moy:.0f} FCFA)")
+                    actions.append(f"🟠 Prix de vente : Augmenter le prix (actuellement {prix_moy:.0f} FCFA)")
                 elif prix_moy > 2700:
-                    actions.append(f"✅ **Prix de vente** : Bon niveau ({prix_moy:.0f} FCFA) — à maintenir")
-
+                    actions.append(f"✅ Prix de vente : Bon niveau ({prix_moy:.0f} FCFA) — à maintenir")
+                
                 if premier_vente > 40:
-                    actions.append(f"🟠 **Première vente** : Anticiper la commercialisation (J{premier_vente})")
+                    actions.append(f"🟠 Première vente : Anticiper la commercialisation (J{premier_vente})")
                 elif premier_vente <= 38:
-                    actions.append(f"✅ **Première vente** : Bon rythme (J{premier_vente}) — à reproduire")
-
+                    actions.append(f"✅ Première vente : Bon rythme (J{premier_vente}) — à reproduire")
+                
                 if taux_reliquat > 5:
-                    actions.append(f"🟡 **Reliquat** : Réduire les invendus ({effectif_final} sujets)")
+                    actions.append(f"🟡 Reliquat : Réduire les invendus ({effectif_final} sujets)")
                 elif taux_reliquat == 0:
-                    actions.append(f"✅ **Reliquat** : Aucun invendu — excellente gestion commerciale")
-
+                    actions.append(f"✅ Reliquat : Aucun invendu — excellente gestion commerciale")
+                
                 if ratio_max > 40:
-                    actions.append(f"🟡 **Concentration** : Diversifier les clients (pic de {max_vente} sujets)")
+                    actions.append(f"🟡 Concentration : Diversifier les clients (pic de {max_vente} sujets)")
                 elif ratio_max <= 25:
-                    actions.append(f"✅ **Diversification** : Clientèle bien répartie — à maintenir")
-
-                # Recommandations essentielles (même quand tout va bien)
-                actions.append(f"📊 **Suivi technique** : Maintenir l'IC ≤ 1,7 et la mortalité < 4%")
-                actions.append(f"💰 **Optimisation financière** : Viser une marge unitaire ≥ 200 FCFA/sujet")
-                actions.append(f"📅 **Planification** : Programmer les cycles pour coïncider avec les périodes de forte demande (Tabaski, Korité, fin d'année)")
-
-                # Affichage
+                    actions.append(f"✅ Diversification : Clientèle bien répartie — à maintenir")
+                
+                # Recommandations essentielles
+                actions.append(f"📊 Suivi technique : Maintenir l'IC ≤ 1,7 et la mortalité < 4%")
+                actions.append(f"💰 Optimisation financière : Viser une marge unitaire ≥ 200 FCFA/sujet")
+                actions.append(f"📅 Planification : Programmer les cycles pour coïncider avec les périodes de forte demande")
+                
                 for action in actions:
-                    st.markdown(f"- {action}")
-            
+                    texte_html += f"• {action}<br>"
+                
+                texte_html += "<br>"
+                
+                # Afficher la carte unique
+                afficher_interpretation(f"💰 {cid} - Interprétations et Recommandations", texte_html)
+
             else:
                 st.info("Données de ventes insuffisantes pour générer des interprétations")
 
@@ -1602,11 +1872,11 @@ elif page == "💰 Ventes & Prix":
 # ═══════════════════════════════════════════════════
 elif page == "⚖️ Bilan Comparatif":
 
-    st.markdown('<div class="section-header">Bilan Comparatif — 3 Cycles</div>', unsafe_allow_html=True)
+    section_header("⚖️ Bilan Comparatif", "Comparaison des performances entre les 3 cycles")
 
     # Tableau de synthèse enrichi
     metrics_bilan = {
-        "Indicateur": ["Effectif initial", "Volume vendu", "Mortalité (%)", "CA (FCFA)",
+        "Indicateur": ["Effectif initial", "Effectif vendu", "Mortalité (%)", "CA (FCFA)",
                        "Dépenses totales (FCFA)", "Résultat net (FCFA)", "Prix moyen/sujet (FCFA)",
                        "Marge unitaire (FCFA)", "IC (indice conso)", "ROI (%)", "Prix de revient (FCFA)"],
         "Cycle 1": [
@@ -1780,7 +2050,6 @@ elif page == "⚖️ Bilan Comparatif":
 
     # === INTERPRÉTATIONS ET RECOMMANDATIONS - BILAN COMPARATIF ===
     st.markdown("---")
-    st.markdown("### 📊 Analyse comparative des 3 cycles")
 
     # Récupérer les données des 3 cycles
     c1 = cycles_recap[cycles_recap["cycle_id"] == "Cycle1"].iloc[0] if len(cycles_recap) > 0 else None
@@ -1788,50 +2057,47 @@ elif page == "⚖️ Bilan Comparatif":
     c3 = cycles_recap[cycles_recap["cycle_id"] == "Cycle3"].iloc[0] if len(cycles_recap) > 2 else None
 
     if c1 is not None and c2 is not None and c3 is not None:
-
+        
+        texte_html = ""
+        
         # ============================================================
         # 1. ANALYSE DU RADAR COMPARATIF
         # ============================================================
-        st.markdown("#### 📡 Radar comparatif des performances")
-
-        # Analyse synthétique (affichée en premier)
-        st.markdown("**📌 Analyse synthétique du radar**")
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.markdown("""
-            **Cycle 1**  
-            - ✅ Meilleur prix (2 758 FCFA)  
-            - ❌ Volume trop faible  
-            - ❌ Marge négative
-            """)
-
-        with col2:
-            st.markdown("""
-            **Cycle 2**  
-            - ✅ Volume correct  
-            - ❌ Prix en baisse  
-            - ❌ Marge très négative
-            """)
-
-        with col3:
-            st.markdown("""
-            **Cycle 3**  
-            - ✅ Meilleur volume (×4,6)  
-            - ❌ Prix le plus bas  
-            - ❌ Marge négative
-            """)
-
-        st.markdown("""
-        **🎯 Priorité pour le Cycle 4** :  
-        Combiner le **volume du Cycle 3** (5 000 sujets) avec le **prix du Cycle 1** (2 758 FCFA)  
-        → Objectif de marge unitaire : **+200 à 300 FCFA/sujet**
-        """)
-
-        # Points forts et points à améliorer
-        st.markdown("---")
-
+        texte_html += '<strong style="color: #60a5fa;">📡 Radar comparatif des performances</strong><br><br>'
+        
+        # Analyse synthétique
+        texte_html += '<strong style="color: #60a5fa;">📌 Analyse synthétique du radar</strong><br>'
+        
+        # Utilisation de colonnes HTML pour les 3 cycles
+        texte_html += """
+        <div style="display: flex; gap: 16px; margin: 12px 0;">
+            <div style="flex: 1; background: rgba(78, 124, 255, 0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: #60a5fa;">Cycle 1</strong><br>
+                ✅ Meilleur prix (2 758 FCFA)<br>
+                ❌ Volume trop faible<br>
+                ❌ Marge négative
+            </div>
+            <div style="flex: 1; background: rgba(78, 124, 255, 0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: #60a5fa;">Cycle 2</strong><br>
+                ✅ Volume correct<br>
+                ❌ Prix en baisse<br>
+                ❌ Marge très négative
+            </div>
+            <div style="flex: 1; background: rgba(78, 124, 255, 0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: #60a5fa;">Cycle 3</strong><br>
+                ✅ Meilleur volume (×4,6)<br>
+                ❌ Prix le plus bas<br>
+                ❌ Marge négative
+            </div>
+        </div>
+        """
+        
+        texte_html += """
+        <strong style="color: #60a5fa;">🎯 Priorité pour le Cycle 4</strong><br>
+        Combiner le volume du Cycle 3 (5 000 sujets) avec le prix du Cycle 1 (2 758 FCFA)<br>
+        → Objectif de marge unitaire : +200 à 300 FCFA/sujet<br><br>
+        """
+        
         # Récupérer les données pour l'évaluation
         prix_c1, prix_c2, prix_c3 = c1["prix_moyen_fcfa"], c2["prix_moyen_fcfa"], c3["prix_moyen_fcfa"]
         marge_c1, marge_c2, marge_c3 = c1["marge_unitaire_fcfa"], c2["marge_unitaire_fcfa"], c3["marge_unitaire_fcfa"]
@@ -1840,86 +2106,69 @@ elif page == "⚖️ Bilan Comparatif":
         ic_c3 = c3.get("ic_calcule", c3.get("ic_standard", 1.7))
         mort_c1, mort_c2, mort_c3 = c1["taux_mortalite_pct"], c2["taux_mortalite_pct"], c3["taux_mortalite_pct"]
         vol_c1, vol_c2, vol_c3 = c1["volume_vendu"], c2["volume_vendu"], c3["volume_vendu"]
-
-        # Évaluation des points forts
+        
+        # Points forts
         axes_forts = []
-
         if ic_c1 <= 1.7 and ic_c2 <= 1.7 and ic_c3 <= 1.7:
-            axes_forts.append("✅ **Indice de consommation** : maîtrisé (≤ 1,7) pour tous les cycles")
-
+            axes_forts.append("✅ Indice de consommation : maîtrisé (≤ 1,7) pour tous les cycles")
         if mort_c1 <= 4 and mort_c2 <= 4 and mort_c3 <= 4:
-            axes_forts.append("✅ **Mortalité** : maîtrisée (< 4%) pour tous les cycles")
-
+            axes_forts.append("✅ Mortalité : maîtrisée (< 4%) pour tous les cycles")
         if vol_c3 > vol_c1 * 4:
-            axes_forts.append(f"📊 **Volume** : montée en puissance réussie (×{vol_c3/vol_c1:.1f} entre C1 et C3)")
-
-        # Évaluation des points à améliorer
+            axes_forts.append(f"📊 Volume : montée en puissance réussie (×{vol_c3/vol_c1:.1f} entre C1 et C3)")
+        
+        # Points à améliorer
         axes_faibles = []
-
         if marge_c1 < 0 and marge_c2 < 0 and marge_c3 < 0:
-            axes_faibles.append("🔴 **Marge unitaire** : négative pour tous les cycles")
-
+            axes_faibles.append("🔴 Marge unitaire : négative pour tous les cycles")
         if prix_c1 > prix_c2 > prix_c3:
-            axes_faibles.append("📉 **Prix de vente** : en baisse constante (C1 → C2 → C3)")
-        elif prix_c3 > prix_c1:
-            axes_forts.append("📈 **Prix de vente** : en hausse")
-        else:
-            axes_faibles.append("🟡 **Prix de vente** : stable mais bas")
-
-        # Affichage des points forts
+            axes_faibles.append("📉 Prix de vente : en baisse constante (C1 → C2 → C3)")
+        elif prix_c3 <= prix_c1:
+            axes_faibles.append("🟡 Prix de vente : stable mais bas")
+        
         if axes_forts:
-            with st.expander("✅ Points forts", expanded=True):
-                for axe in axes_forts:
-                    st.markdown(f"- {axe}")
-
-        # Affichage des points à améliorer
+            texte_html += '<strong style="color: #60a5fa;">✅ Points forts</strong><br>'
+            for axe in axes_forts:
+                texte_html += f"• {axe}<br>"
+            texte_html += "<br>"
+        
         if axes_faibles:
-            with st.expander("⚠️ Points à améliorer", expanded=True):
-                for axe in axes_faibles:
-                    st.markdown(f"- {axe}")
-
-        if not axes_forts and not axes_faibles:
-            st.info("Aucune donnée suffisante pour évaluer les points forts et faibles")
+            texte_html += '<strong style="color: #60a5fa;">⚠️ Points à améliorer</strong><br>'
+            for axe in axes_faibles:
+                texte_html += f"• {axe}<br>"
+            texte_html += "<br>"
         
         # ============================================================
         # 2. ANALYSE PRIX MOYEN VS PRIX DE REVIENT
         # ============================================================
-        st.markdown("---")
-        st.markdown("#### 💰 Prix de vente vs Prix de revient")
+        texte_html += '<strong style="color: #60a5fa;">💰 Prix de vente vs Prix de revient</strong><br>'
         
-        # Calculer les prix de revient
         prix_revient_c1 = c1["depenses_totales_fcfa"] / c1["volume_vendu"] if c1["volume_vendu"] > 0 else 0
         prix_revient_c2 = c2["depenses_totales_fcfa"] / c2["volume_vendu"] if c2["volume_vendu"] > 0 else 0
         prix_revient_c3 = c3["depenses_totales_fcfa"] / c3["volume_vendu"] if c3["volume_vendu"] > 0 else 0
         
-        
-        
-        # Identifier les meilleures performances
         meilleur_prix = "C1" if prix_c1 == max(prix_c1, prix_c2, prix_c3) else ("C2" if prix_c2 == max(prix_c1, prix_c2, prix_c3) else "C3")
         meilleur_cout = "C1" if prix_revient_c1 == min(prix_revient_c1, prix_revient_c2, prix_revient_c3) else ("C2" if prix_revient_c2 == min(prix_revient_c1, prix_revient_c2, prix_revient_c3) else "C3")
         
-        st.markdown(f"""
-        **Analyse des prix et des coûts** :  
-        - Meilleur prix : **{meilleur_prix}** ({max(prix_c1, prix_c2, prix_c3):.0f} FCFA)  
-        - Meilleur coût de revient : **{meilleur_cout}** ({min(prix_revient_c1, prix_revient_c2, prix_revient_c3):.0f} FCFA)  
-        - Écart C1 vs C3 : prix −{prix_c1 - prix_c3:.0f} FCFA, coût −{prix_revient_c1 - prix_revient_c3:.0f} FCFA
-        """)
+        texte_html += f"""
+        • Meilleur prix : <strong>{meilleur_prix}</strong> ({max(prix_c1, prix_c2, prix_c3):.0f} FCFA)<br>
+        • Meilleur coût de revient : <strong>{meilleur_cout}</strong> ({min(prix_revient_c1, prix_revient_c2, prix_revient_c3):.0f} FCFA)<br>
+        • Écart C1 vs C3 : prix −{prix_c1 - prix_c3:.0f} FCFA, coût −{prix_revient_c1 - prix_revient_c3:.0f} FCFA<br>
+        """
         
         if meilleur_prix == "C1" and meilleur_cout == "C3":
-            st.markdown("✅ **Combinaison gagnante à viser** : prix du C1 + coût du C3 → marge potentielle de **+{:.0f} FCFA/sujet**".format(prix_c1 - prix_revient_c3))
+            texte_html += f"✅ Combinaison gagnante à viser : prix du C1 + coût du C3 → marge potentielle de <strong>+{prix_c1 - prix_revient_c3:.0f} FCFA/sujet</strong><br>"
         
-        st.markdown("""
-        **Recommandation** :  
-        - Cycle 1 : réduire le coût de revient (appliquer les pratiques de C3)  
-        - Cycle 3 : augmenter le prix de vente (retour au niveau C1)  
-        - Objectif C4 : prix ≥ 2 700 FCFA, coût de revient ≤ 2 500 FCFA → marge ≥ 200 FCFA/sujet
-        """)
+        texte_html += """
+        <br><strong style="color: #60a5fa;">🎯 Recommandation</strong><br>
+        • Cycle 1 : réduire le coût de revient (appliquer les pratiques de C3)<br>
+        • Cycle 3 : augmenter le prix de vente (retour au niveau C1)<br>
+        • Objectif C4 : prix ≥ 2 700 FCFA, coût de revient ≤ 2 500 FCFA → marge ≥ 200 FCFA/sujet<br><br>
+        """
         
         # ============================================================
         # 3. ANALYSE DU SEUIL DE RENTABILITÉ
         # ============================================================
-        st.markdown("---")
-        st.markdown("#### 🎯 Seuil de rentabilité")
+        texte_html += '<strong style="color: #60a5fa;">🎯 Seuil de rentabilité</strong><br>'
         
         ca_c3 = c3["ca_fcfa"] if c3 is not None else 0
         seuil_c3 = c3.get("seuil_rentabilite_fcfa", 0)
@@ -1928,65 +2177,70 @@ elif page == "⚖️ Bilan Comparatif":
         if seuil_c3 > 0:
             couverture = (ca_c3 / seuil_c3) * 100
             ecart = seuil_c3 - ca_c3
+            augmentation_necessaire = ((seuil_c3 - ca_c3) / ca_c3) * 100 if ca_c3 > 0 else 0
             
-            st.markdown(f"""
-            **Cycle 3 uniquement** (données disponibles) :
-            - Seuil de rentabilité : **{seuil_c3/1e6:.1f} M FCFA**
-            - CA réalisé : **{ca_c3/1e6:.1f} M FCFA**
-            - Couverture : **{couverture:.0f}%** du seuil
-            - Écart à combler : **{ecart/1e6:.1f} M FCFA**
-            - Point mort : **{point_mort_c3:.0f} jours** (cycle = 53 jours)
-            """)
+            texte_html += f"""
+            <strong>Cycle 3 uniquement</strong> (données disponibles) :<br>
+            • Seuil de rentabilité : <strong>{seuil_c3/1e6:.1f} M FCFA</strong><br>
+            • CA réalisé : <strong>{ca_c3/1e6:.1f} M FCFA</strong><br>
+            • Couverture : <strong>{couverture:.0f}%</strong> du seuil<br>
+            • Écart à combler : <strong>{ecart/1e6:.1f} M FCFA</strong><br>
+            • Point mort : <strong>{point_mort_c3:.0f} jours</strong> (cycle = 53 jours)<br>
+            """
             
             if ca_c3 < seuil_c3:
-                st.markdown("""
-                **Analyse** :  
-                - Le CA est insuffisant pour atteindre le seuil de rentabilité  
-                - Le cycle n’est **jamais rentable** sur sa durée (point mort > 53 jours)  
-                - Il faudrait augmenter le CA de **{:.0f} %** pour atteindre l’équilibre
-                """.format((seuil_c3 - ca_c3) / ca_c3 * 100))
-                
-                st.markdown("""
-                **Recommandations** (leviers pour C4) :  
-                - Augmenter le prix de vente de **+250 FCFA/sujet** (gain ≈ +1,2 M FCFA)  
-                - Ou augmenter le volume de **+1 800 sujets** (à 6 800 sujets)  
-                - Ou réduire les charges fixes de **−1,0 M FCFA**  
-                - Ou combiner plusieurs leviers (prix + volume + coûts)
-                """)
+                texte_html += f"""
+                <br><strong>Analyse</strong> :<br>
+                • Le CA est insuffisant pour atteindre le seuil de rentabilité<br>
+                • Le cycle n'est <strong>jamais rentable</strong> sur sa durée (point mort > 53 jours)<br>
+                • Il faudrait augmenter le CA de <strong>{augmentation_necessaire:.0f}%</strong> pour atteindre l'équilibre<br>
+                <br><strong style="color: #60a5fa;">🎯 Recommandations</strong> (leviers pour C4) :<br>
+                • Augmenter le prix de vente de <strong>+250 FCFA/sujet</strong> (gain ≈ +1,2 M FCFA)<br>
+                • Ou augmenter le volume de <strong>+1 800 sujets</strong> (à 6 800 sujets)<br>
+                • Ou réduire les charges fixes de <strong>−1,0 M FCFA</strong><br>
+                • Ou combiner plusieurs leviers (prix + volume + coûts)<br>
+                """
             else:
-                st.markdown("✅ **Cycle rentable** : le seuil de rentabilité est atteint")
+                texte_html += "<br>✅ Cycle rentable : le seuil de rentabilité est atteint<br>"
         else:
-            st.markdown("""
-            **Cycles 1 et 2** : seuil de rentabilité non calculé (données insuffisantes)  
-            → Pour les prochains cycles, estimer le seuil à partir du ratio charges fixes / marge sur coûts variables
-            """)
+            texte_html += """
+            <strong>Cycles 1 et 2</strong> : seuil de rentabilité non calculé (données insuffisantes)<br>
+            → Pour les prochains cycles, estimer le seuil à partir du ratio charges fixes / marge sur coûts variables<br>
+            """
+        
+        texte_html += "<br>"
+        
+        # Afficher la carte unique
+        afficher_interpretation("⚖️ Bilan Comparatif - Synthèse", texte_html)
+
+    else:
+        st.info("Données insuffisantes pour générer l'analyse comparative")
         
         # ============================================================
         # 4. SYNTHÈSE FINALE
         # ============================================================
-        st.markdown("---")
-        st.markdown("### 🎯 Objectifs pour le Cycle 4")
+    st.markdown("---")
+    st.markdown("### 🎯 Objectifs pour le Cycle 4")
         
-        st.markdown("""
-        | Indicateur | Objectif | Justification |
-        |------------|----------|---------------|
-        | Volume | 5 000 – 6 800 sujets | Diluer les charges fixes |
-        | Prix de vente | ≥ 2 700 FCFA/sujet | Revenir au niveau du Cycle 1 |
-        | Coût de revient | ≤ 2 500 FCFA/sujet | Maintenir les performances du Cycle 3 |
-        | Marge unitaire | ≥ 200 FCFA/sujet | Atteindre la rentabilité |
-        | IC | ≤ 1,7 | Maintenir l'efficacité alimentaire |
-        | Mortalité | ≤ 4% | Maintenir la maîtrise sanitaire |
-        """)
+    st.markdown("""
+    | Indicateur | Objectif | Justification |
+    |------------|----------|---------------|
+    | Volume | 5 000 – 6 800 sujets | Diluer les charges fixes |
+    | Prix de vente | ≥ 2 700 FCFA/sujet | Revenir au niveau du Cycle 1 |
+    | Coût de revient | ≤ 2 500 FCFA/sujet | Maintenir les performances du Cycle 3 |
+    | Marge unitaire | ≥ 200 FCFA/sujet | Atteindre la rentabilité |
+    | IC | ≤ 1,7 | Maintenir l'efficacité alimentaire |
+    | Mortalité | ≤ 4% | Maintenir la maîtrise sanitaire |
+    """)
         
-    else:
-        st.info("Données insuffisantes pour générer l'analyse comparative")
+    
 
 # ═══════════════════════════════════════════════════
 # PAGE 5 : RECOMMANDATIONS DYNAMIQUES
 # ═══════════════════════════════════════════════════
 elif page == "🎯 Recommandations":
 
-    st.markdown('<div class="section-header">Recommandations Personnalisées</div>', unsafe_allow_html=True)
+    section_header("🎯 Recommandations & Plan d'Action", "Actions prioritaires basées sur l'analyse des données")
 
     # Récupérer les données pour les 3 cycles
     c1 = cycles_recap.iloc[0]
@@ -2529,46 +2783,7 @@ elif page == "🎯 Recommandations":
         else:
             st.info("ℹ️ Capitalisez sur vos succès pour les cycles futurs.")
 
-    # Simulation Cycle 4 (conservée)
-    st.markdown('<div class="section-header">🔮 Simulation Cycle 4</div>', unsafe_allow_html=True)
-    st.markdown("<div style='font-size:13px;color:#6b7280;margin-bottom:16px'>Ajustez les paramètres pour simuler la rentabilité du prochain cycle.</div>", unsafe_allow_html=True)
-
-    col_sim1, col_sim2, col_sim3 = st.columns(3)
-    with col_sim1:
-        vol_c4 = st.slider("Volume cible (têtes)", 3000, 8000, 5000, 100)
-        prix_c4 = st.slider("Prix moyen cible (FCFA)", 2300, 3200, 2700, 50)
-    with col_sim2:
-        mort_c4 = st.slider("Taux mortalité estimé (%)", 1.0, 8.0, 3.0, 0.1)
-        cout_poussin_c4 = st.slider("Coût poussin (FCFA/tête)", 500, 900, 645, 5)
-    with col_sim3:
-        cout_alim_c4 = st.slider("Coût aliment total (M FCFA)", 4.0, 12.0, 7.5, 0.1)
-        charges_fixes_c4 = st.number_input("Charges fixes (FCFA)", value=1_340_000, step=10000)
-
-    # Calculs simulation
-    ca_sim = vol_c4 * prix_c4
-    charges_var_sim = (cout_poussin_c4 * int(vol_c4 / (1 - mort_c4/100))) + int(cout_alim_c4 * 1e6) + int(charges_fixes_c4 * 0.5)
-    depenses_sim = charges_var_sim + charges_fixes_c4
-    resultat_sim = ca_sim - depenses_sim
-    marge_sim = resultat_sim / vol_c4 if vol_c4 > 0 else 0
-    roi_sim = (resultat_sim / depenses_sim) * 100 if depenses_sim > 0 else 0
-
-    col_r1, col_r2, col_r3, col_r4 = st.columns(4)
-    color_sim = "#34d399" if resultat_sim >= 0 else "#f87171"
     
-    with col_r1:
-        st.markdown(card("CA Simulé", f"{ca_sim/1e6:.2f} M FCFA", "", "#4e7cff"), unsafe_allow_html=True)
-    with col_r2:
-        st.markdown(card("Dépenses Estimées", f"{depenses_sim/1e6:.2f} M FCFA", "", "#fbbf24"), unsafe_allow_html=True)
-    with col_r3:
-        st.markdown(card("Résultat Simulé", f"{resultat_sim:+,.0f} FCFA", "", color_sim), unsafe_allow_html=True)
-    with col_r4:
-        st.markdown(card("ROI Simulé", f"{roi_sim:+.1f}%", "", color_sim), unsafe_allow_html=True)
-
-    if resultat_sim >= 0:
-        st.markdown(f'<div class="success-box">✅ Avec ces paramètres, le Cycle 4 dégage un bénéfice de <b>{resultat_sim:,.0f} FCFA</b> (ROI {roi_sim:+.1f}%).</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="alert-box">⚠️ Avec ces paramètres, le Cycle 4 reste déficitaire de <b>{abs(resultat_sim):,.0f} FCFA</b>. Augmenter le prix ou réduire les coûts d\'aliment.</div>', unsafe_allow_html=True)
-
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
