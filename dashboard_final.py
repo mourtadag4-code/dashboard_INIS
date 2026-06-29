@@ -2966,6 +2966,14 @@ elif page == "📊 Analyse par Cycle":
                         
                         if fig_groupes.data:
                             plotly_light_layout(fig_groupes, f"Évolution des poids par groupe - {cycle_sel}", 350)
+                            fig_groupes.update_layout(
+                                legend=dict(
+                                    font=dict(color="#163F36", size=10),
+                                    bgcolor="#F4E8D8",
+                                    bordercolor="#E2B75F",
+                                    borderwidth=1
+                                )
+                            )
                             fig_groupes.update_yaxes(title_text="Poids (kg)")
                             st.plotly_chart(fig_groupes, use_container_width=True, key=f"plotly_groupes_{cycle_sel}")
                         else:
@@ -3279,7 +3287,7 @@ elif page == "💰 Finance":
         st.caption("Graphique masqué. Cochez la case pour l'afficher.")
     
     # Graphique : Volume Vendu Cumulé
-    st.markdown("<span style='font-size:22px; font-weight:600;'>Volume Vendu Cumulé</span>", unsafe_allow_html=True)
+    st.markdown("<span style='font-size:22px; font-weight:600;'>Volume Vendu Cumulé (%)</span>", unsafe_allow_html=True)
     afficher_volume = st.checkbox("", value=True, key="check_volume_finance")
 
     if afficher_volume:
@@ -3288,25 +3296,37 @@ elif page == "💰 Finance":
         if not v_cycle.empty:
             v_cycle = v_cycle.copy()
             v_cycle["qte_cum"] = v_cycle["quantite"].cumsum()
+            
+            # Calculer le pourcentage du volume total vendu
+            volume_total = v_cycle["quantite"].sum()
+            v_cycle["pct_cum"] = (v_cycle["qte_cum"] / volume_total) * 100
+            
             color = COLORS.get(cycle_finance, "#163F36")
             hex_color = color.lstrip('#')
             r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            
             fig2.add_trace(go.Scatter(
                 x=v_cycle["jour"], 
-                y=v_cycle["qte_cum"], 
+                y=v_cycle["pct_cum"], 
                 name=cycle_finance,
                 mode="lines+markers",
                 line=dict(color=color, width=2),
                 fill="tozeroy",
                 fillcolor=f"rgba({r}, {g}, {b}, 0.15)",
-                hovertemplate=f"<b>{cycle_finance}</b><br>Jour %{{x}}<br>Cumulé : %{{y:,}} têtes<extra></extra>"
+                hovertemplate=f"<b>{cycle_finance}</b><br>Jour %{{x}}<br>Cumulé : %{{y:.1f}}%<extra></extra>"
             ))
+            
+            # Ajouter des lignes de référence pour 25%, 50%, 75%
+            fig2.add_hline(y=25, line_dash="dot", line_color="#6b7280", opacity=0.5)
+            fig2.add_hline(y=50, line_dash="dot", line_color="#6b7280", opacity=0.5)
+            fig2.add_hline(y=75, line_dash="dot", line_color="#6b7280", opacity=0.5)
+            
         plotly_light_layout(fig2, "", height=350)
         fig2.update_layout(
             legend=dict(font=dict(color="#163F36", size=12))
         )
         fig2.update_xaxes(title_text="Jour du cycle")
-        fig2.update_yaxes(title_text="Têtes vendues cumulées")
+        fig2.update_yaxes(title_text="Volume vendu cumulé (%)", range=[0, 105])
         st.plotly_chart(fig2, use_container_width=True)
         
         # ============================================================
@@ -3395,6 +3415,13 @@ elif page == "💰 Finance":
                     reference_pente = "(< 10 sujets/jour : action commerciale nécessaire)"
                     couleur_pente = "#f87171"
                 
+                # Calcul des jours pour atteindre 25%, 50%, 75%
+                jours_paliers = {
+                    "25%": jour_pallier_25,
+                    "50%": jour_pallier_50,
+                    "75%": jour_pallier_75
+                }
+                
             else:
                 volume_total = 0
                 premier_vente = None
@@ -3402,7 +3429,7 @@ elif page == "💰 Finance":
                 nb_jours_vente = 0
                 duree_etalement = 0
                 pente = 0
-                jour_pallier_25 = jour_pallier_50 = jour_pallier_75 = None
+                jours_paliers = {"25%": None, "50%": None, "75%": None}
                 vitesse_vente = "Aucune vente enregistrée"
                 reference_vitesse = ""
                 etalement_texte = "Données insuffisantes"
@@ -3464,14 +3491,14 @@ elif page == "💰 Finance":
                 """, unsafe_allow_html=True)
                 
                 # Conteneur 4 : Progression par pallier
-                if jour_pallier_25 and jour_pallier_50 and jour_pallier_75:
+                if jours_paliers["25%"] and jours_paliers["50%"] and jours_paliers["75%"]:
                     st.markdown(f"""
                     <div class="metric-card" style="--accent:#D4A373;">
                         <div class="metric-label" style="font-size: 16px;">🎯 Progression des ventes</div>
                         <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • 25% du volume atteint : J{jour_pallier_25}<br>
-                            • 50% du volume atteint : J{jour_pallier_50}<br>
-                            • 75% du volume atteint : J{jour_pallier_75}
+                            • 25% du volume atteint : J{jours_paliers["25%"]}<br>
+                            • 50% du volume atteint : J{jours_paliers["50%"]}<br>
+                            • 75% du volume atteint : J{jours_paliers["75%"]}
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -3535,7 +3562,7 @@ elif page == "💰 Finance":
             x=categories,
             y=valeurs,
             marker_color="#E2B75F",
-            text=[f"{v/1e6:.2f} M" for v in valeurs if v > 0],
+            text=[f"{v/1e6:.2f} M" if v > 0 else "" for v in valeurs],
             textposition="outside",
             hovertemplate="<b>%{x}</b><br>%{y:,.0f} FCFA<extra></extra>"
         ))
@@ -3790,47 +3817,442 @@ elif page == "💰 Finance":
     afficher_cout_jour = st.checkbox("", value=True, key="check_cout_jour")
 
     if afficher_cout_jour:
+        # --- S'assurer que cycle_finance est une chaîne ---
+        cycle_finance_str = str(cycle_finance) if not isinstance(cycle_finance, str) else cycle_finance
+        
+        # Récupérer les données du cycle sélectionné
+        j_fin = journalier[journalier["cycle_id"] == cycle_finance_str].copy()
+        c_fin = cycles_recap[cycles_recap["cycle_id"] == cycle_finance_str].iloc[0]
+        
         if not j_fin.empty:
-            # Coût alimentaire par jour (360 FCFA/kg)
-            cout_aliment_jour = j_fin["conso_jour"] * 360
             
-            # Répartition des autres coûts variables sur la durée du cycle
+            # === DÉFINIR LA FIN DU CYCLE À 90% DES VENTES ===
+            effectif_initial = c_fin["effectif_initial"]
+            if hasattr(effectif_initial, 'iloc'):
+                effectif_initial = effectif_initial.iloc[0]
+            
+            seuil_90 = effectif_initial * 0.9
+            
+            jour_fin_cycle = None
+            if "vendus_jour" in j_fin.columns and "effectif_restant" in j_fin.columns:
+                j_fin["ventes_cumulees"] = j_fin["vendus_jour"].cumsum()
+                jours_90 = j_fin[j_fin["ventes_cumulees"] >= seuil_90]
+                if not jours_90.empty:
+                    jour_fin_cycle = jours_90["jour"].iloc[0]
+                else:
+                    jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            if jour_fin_cycle is None:
+                jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            j_fin_cycle = j_fin[j_fin["jour"] <= jour_fin_cycle].copy()
+            
+            # === CALCUL DES COÛTS SUR LA PÉRIODE FILTRÉE ===
+            # Coût alimentaire par jour (360 FCFA/kg)
+            cout_aliment_jour = j_fin_cycle["conso_jour"] * 360
+            
+            # --- COÛTS VARIABLES (lissés) ---
             couts_variables = (c_fin["cout_poussins_fcfa"] + c_fin["cout_medical_fcfa"] + 
                             c_fin["cout_transport_fcfa"] + c_fin["cout_litiere_fcfa"])
-            cout_journalier_variables = couts_variables / len(j_fin) if len(j_fin) > 0 else 0
+            if hasattr(couts_variables, 'iloc'):
+                couts_variables = couts_variables.iloc[0]
             
-            # Coût total par jour
-            cout_total_jour = cout_aliment_jour + cout_journalier_variables
+            nb_jours_90 = len(j_fin_cycle) if len(j_fin_cycle) > 0 else 1
+            cout_journalier_variables = couts_variables / nb_jours_90 if nb_jours_90 > 0 else 0
+            
+            # --- CHARGES FIXES (lissées) - AVEC VÉRIFICATION D'EXISTENCE ---
+            # Initialiser à 0
+            cout_salaires = 0
+            cout_loyer = 0
+            cout_eau_elec = 0
+            cout_telecom = 0
+            cout_autres = 0
+            
+            # Vérifier chaque colonne avant de l'utiliser
+            if "cout_salaires_fcfa" in c_fin.index and pd.notna(c_fin["cout_salaires_fcfa"]):
+                cout_salaires = c_fin["cout_salaires_fcfa"]
+                if hasattr(cout_salaires, 'iloc'):
+                    cout_salaires = cout_salaires.iloc[0]
+            
+            if "cout_loyer_fcfa" in c_fin.index and pd.notna(c_fin["cout_loyer_fcfa"]):
+                cout_loyer = c_fin["cout_loyer_fcfa"]
+                if hasattr(cout_loyer, 'iloc'):
+                    cout_loyer = cout_loyer.iloc[0]
+            
+            if "cout_eau_elec_fcfa" in c_fin.index and pd.notna(c_fin["cout_eau_elec_fcfa"]):
+                cout_eau_elec = c_fin["cout_eau_elec_fcfa"]
+                if hasattr(cout_eau_elec, 'iloc'):
+                    cout_eau_elec = cout_eau_elec.iloc[0]
+            
+            if "cout_telecom_fcfa" in c_fin.index and pd.notna(c_fin["cout_telecom_fcfa"]):
+                cout_telecom = c_fin["cout_telecom_fcfa"]
+                if hasattr(cout_telecom, 'iloc'):
+                    cout_telecom = cout_telecom.iloc[0]
+            
+            if "cout_autres_fcfa" in c_fin.index and pd.notna(c_fin["cout_autres_fcfa"]):
+                cout_autres = c_fin["cout_autres_fcfa"]
+                if hasattr(cout_autres, 'iloc'):
+                    cout_autres = cout_autres.iloc[0]
+            
+            couts_fixes = cout_salaires + cout_loyer + cout_eau_elec + cout_telecom + cout_autres
+            
+            cout_journalier_fixes = couts_fixes / nb_jours_90 if nb_jours_90 > 0 else 0
+            
+            # --- Coût TOTAL par jour (variables + fixes) ---
+            cout_total_jour = cout_aliment_jour + cout_journalier_variables + cout_journalier_fixes
             
             # Coût cumulé
             cout_cumule = cout_total_jour.cumsum()
             
-            fig_cout = go.Figure()
-            fig_cout.add_trace(go.Scatter(
-                x=j_fin["jour"],
-                y=cout_total_jour,
+            # Vérifier si les données sont valides
+            if cout_total_jour.sum() == 0:
+                st.warning(f"⚠️ Données de coûts insuffisantes pour {cycle_finance_str}.")
+            else:
+                # Calculer le pourcentage de ventes cumulées
+                j_fin_cycle["ventes_cumulees_pct"] = (j_fin_cycle["ventes_cumulees"] / effectif_initial) * 100
+                
+                fig_cout = go.Figure()
+                
+                # Courbe du coût total par jour
+                fig_cout.add_trace(go.Scatter(
+                    x=j_fin_cycle["jour"],
+                    y=cout_total_jour,
+                    mode="lines+markers",
+                    name="Coût total par jour",
+                    line=dict(color="#163F36", width=2.5),
+                    marker=dict(size=6, color="#E2B75F"),
+                    fill="tozeroy",
+                    fillcolor="rgba(78, 124, 255, 0.15)",
+                    hovertemplate="Jour %{x}<br>Coût journalier : %{y:,.0f} FCFA<extra></extra>"
+                ))
+                
+                # Ajout de la courbe de coût cumulé (axe secondaire)
+                fig_cout.add_trace(go.Scatter(
+                    x=j_fin_cycle["jour"],
+                    y=cout_cumule,
+                    mode="lines",
+                    name="Coût cumulé",
+                    line=dict(color="#E2B75F", width=2, dash="dot"),
+                    yaxis="y2",
+                    hovertemplate="Jour %{x}<br>Coût cumulé : %{y:,.0f} FCFA<extra></extra>"
+                ))
+                
+                # Ajout d'une ligne verticale pour le jour de 90% de ventes
+                if jour_fin_cycle:
+                    fig_cout.add_vline(
+                        x=jour_fin_cycle, 
+                        line_dash="dash", 
+                        line_color="#f87171",
+                        annotation_text=f"90% vendu (J{jour_fin_cycle})",
+                        annotation_position="top right"
+                    )
+                
+                titre_graph = f"Évolution du coût total par jour - {cycle_finance} (fin à 90% des ventes : J{jour_fin_cycle})"
+                plotly_light_layout(fig_cout, titre_graph, height=400)
+                fig_cout.update_layout(
+                    legend=dict(font=dict(color="#163F36", size=10)),
+                    yaxis2=dict(
+                        overlaying="y",
+                        side="right",
+                        showgrid=False,
+                        tickfont=dict(color="#163F36", size=10),
+                        title_font=dict(color="#163F36"),
+                        title_text="Coût cumulé (FCFA)"
+                    )
+                )
+                fig_cout.update_xaxes(title_text="Jour du cycle")
+                fig_cout.update_yaxes(title_text="Coût journalier (FCFA)")
+                st.plotly_chart(fig_cout, use_container_width=True)
+                
+                # ============================================================
+                # INTERPRÉTATIONS DYNAMIQUES
+                # ============================================================
+                with st.expander("📖 Interprétations", expanded=False):
+                    
+                    cout_moyen_journalier = cout_total_jour.mean()
+                    cout_max_journalier = cout_total_jour.max()
+                    
+                    if not cout_total_jour.empty and cout_max_journalier > 0:
+                        idx_max = cout_total_jour.idxmax()
+                        jour_max_cout = j_fin_cycle.loc[idx_max, "jour"] if idx_max in j_fin_cycle.index else 0
+                    else:
+                        jour_max_cout = 0
+                        
+                    cout_cumule_final = cout_cumule.iloc[-1] if not cout_cumule.empty else 0
+                    
+                    # Récupérer le CA du cycle
+                    ca_cycle = c_fin["ca_fcfa"]
+                    if hasattr(ca_cycle, 'iloc'):
+                        ca_cycle = ca_cycle.iloc[0]
+                    
+                    if len(j_fin_cycle) >= 2:
+                        debut = cout_total_jour.iloc[:len(j_fin_cycle)//3].mean() if len(j_fin_cycle) >= 3 else cout_total_jour.iloc[0]
+                        fin = cout_total_jour.iloc[-len(j_fin_cycle)//3:].mean() if len(j_fin_cycle) >= 3 else cout_total_jour.iloc[-1]
+                        progression = (fin - debut) / debut * 100 if debut > 0 else 0
+                    else:
+                        progression = 0
+                    
+                    if progression > 50:
+                        texte_progression = f"Forte augmentation du coût (+{progression:.0f}%) en fin de cycle"
+                        reference_progression = "(> 50% → augmentation très rapide)"
+                        couleur_prog = "#f87171"
+                    elif progression > 20:
+                        texte_progression = f"Augmentation modérée du coût (+{progression:.0f}%)"
+                        reference_progression = "(20-50% → augmentation à surveiller)"
+                        couleur_prog = "#E2B75F"
+                    elif progression < -20:
+                        texte_progression = f"Baisse significative du coût ({progression:.0f}%)"
+                        reference_progression = "(< -20% → baisse inhabituelle)"
+                        couleur_prog = "#34d399"
+                    elif progression < -5:
+                        texte_progression = f"Légère baisse du coût ({progression:.0f}%)"
+                        reference_progression = "(-5 à -20% → baisse modérée)"
+                        couleur_prog = "#34d399"
+                    else:
+                        texte_progression = f"Coût stable (variation de {progression:+.0f}%)"
+                        reference_progression = "(-5 à +5% → stabilité)"
+                        couleur_prog = "#34d399"
+                    
+                    # Part de l'aliment dans le coût total avec références
+                    if cout_total_jour.sum() > 0 and cout_total_jour.mean() > 0:
+                        part_aliment_jour = (cout_aliment_jour / cout_total_jour).mean() * 100
+                        
+                        if part_aliment_jour > 80:
+                            alerte_aliment = f"L'aliment représente plus de 80% du coût journalier (très élevé)"
+                            reference_aliment = "(> 80% → dépendance excessive)"
+                            couleur_aliment = "#f87171"
+                        elif part_aliment_jour > 70:
+                            alerte_aliment = f"L'aliment représente 70-80% du coût journalier"
+                            reference_aliment = "(70-80% → part élevée, à surveiller)"
+                            couleur_aliment = "#E2B75F"
+                        elif part_aliment_jour > 45:
+                            alerte_aliment = f"Part de l'aliment : {part_aliment_jour:.0f}% (au-dessus de la référence)"
+                            reference_aliment = "(45-70% → au-dessus de l'objectif)"
+                            couleur_aliment = "#E2B75F"
+                        else:
+                            alerte_aliment = f"Part de l'aliment maîtrisée ({part_aliment_jour:.0f}%)"
+                            reference_aliment = "(< 45% → objectif atteint)"
+                            couleur_aliment = "#34d399"
+                    else:
+                        part_aliment_jour = 0
+                        alerte_aliment = "Données insuffisantes"
+                        reference_aliment = ""
+                        couleur_aliment = "#6b7280"
+                    
+                    # Comparaison CA vs Coût total
+                    if ca_cycle > 0 and cout_cumule_final > 0:
+                        ratio_ct_ca = (cout_cumule_final / ca_cycle) * 100
+                        if ratio_ct_ca < 85:
+                            statut_ct = "Coût total maîtrisé"
+                            couleur_ct = "#34d399"
+                            reference_ct = "(< 85% du CA → bonne performance)"
+                            texte_ratio = f"Coût total = {ratio_ct_ca:.0f}% du CA"
+                        elif ratio_ct_ca < 95:
+                            statut_ct = "Coût total modéré"
+                            couleur_ct = "#E2B75F"
+                            reference_ct = "(85-95% du CA → performance correcte)"
+                            texte_ratio = f"Coût total = {ratio_ct_ca:.0f}% du CA"
+                        else:
+                            statut_ct = "⚠️ Coût total élevé"
+                            couleur_ct = "#f87171"
+                            reference_ct = "(> 95% du CA → marge nette réduite)"
+                            texte_ratio = f"Coût total = {ratio_ct_ca:.0f}% du CA"
+                    else:
+                        ratio_ct_ca = 0
+                        statut_ct = "Données insuffisantes"
+                        couleur_ct = "#6b7280"
+                        reference_ct = ""
+                        texte_ratio = "Données insuffisantes"
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:#163F36;">
+                            <div class="metric-label" style="font-size: 16px;">Statistiques du coût total</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • Coût moyen : {cout_moyen_journalier:,.0f} FCFA/jour<br>
+                                • Coût maximum : {cout_max_journalier:,.0f} FCFA (J{jour_max_cout})<br>
+                                • Coût total cumulé : <strong>{cout_cumule_final/1e6:.2f} M FCFA</strong><br>
+                                • CA du cycle : <strong>{ca_cycle/1e6:.2f} M FCFA</strong><br>
+                                • Fin du cycle à 90% : J{jour_fin_cycle}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_prog};">
+                            <div class="metric-label" style="font-size: 16px;">Progression du coût total</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {texte_progression}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_progression}</span><br>
+                                • Début : {debut:,.0f} FCFA → J{jour_fin_cycle} : {fin:,.0f} FCFA<br>
+                                • {statut_ct}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_ct}</span><br>
+                                • {texte_ratio}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_aliment};">
+                            <div class="metric-label" style="font-size: 16px;">Part de l'aliment</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {alerte_aliment}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_aliment}</span><br>
+                                • Part moyenne : {part_aliment_jour:.0f}% du coût total
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        
+                        
+                        # Synthèse avec comparaison CA vs Coût total
+                        if ca_cycle > 0 and cout_cumule_final > 0:
+                            resultat_net = ca_cycle - cout_cumule_final
+                            marge_nette_pct = (resultat_net / ca_cycle) * 100
+                            
+                            if marge_nette_pct > 15:
+                                synthese = f"Résultat net excellent : {resultat_net/1e6:.2f} M FCFA"
+                                reference_synthese = "(> 15% → très bonne rentabilité)"
+                                couleur_synthese = "#34d399"
+                            elif marge_nette_pct > 8:
+                                synthese = f"Résultat net correct : {resultat_net/1e6:.2f} M FCFA"
+                                reference_synthese = "(8-15% → rentabilité acceptable)"
+                                couleur_synthese = "#E2B75F"
+                            elif marge_nette_pct > 0:
+                                synthese = f"Résultat net faible : {resultat_net/1e6:.2f} M FCFA"
+                                reference_synthese = "(0-8% → marge insuffisante)"
+                                couleur_synthese = "#fbbf24"
+                            else:
+                                synthese = f"🔴 Résultat net négatif : {resultat_net/1e6:.2f} M FCFA"
+                                reference_synthese = "(< 0% → cycle déficitaire)"
+                                couleur_synthese = "#f87171"
+                        else:
+                            synthese = "Données insuffisantes pour l'analyse"
+                            reference_synthese = ""
+                            couleur_synthese = "#6b7280"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_synthese};">
+                            <div class="metric-label" style="font-size: 16px;">Synthèse</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {synthese}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_synthese}</span><br>
+                                • Coût journalier moyen : {cout_moyen_journalier:,.0f} FCFA<br>
+                                • (Charges fixes incluses)
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        else:
+            st.info("Données journalières insuffisantes pour calculer le coût par jour.")
+    else:
+        st.caption("Graphique masqué. Cochez la case pour l'afficher.")
+
+    st.markdown("### 🐣 Évolution des coûts variables par jour")
+    afficher_cout_var = st.checkbox("", value=True, key="check_cout_var")
+
+    if afficher_cout_var:
+        if not j_fin.empty:
+            
+            # === DÉFINIR LA FIN DU CYCLE À 90% DES VENTES ===
+            effectif_initial = c_fin["effectif_initial"]
+            if hasattr(effectif_initial, 'iloc'):
+                effectif_initial = effectif_initial.iloc[0]
+            
+            seuil_90 = effectif_initial * 0.9
+            
+            jour_fin_cycle = None
+            if "vendus_jour" in j_fin.columns and "effectif_restant" in j_fin.columns:
+                j_fin["ventes_cumulees"] = j_fin["vendus_jour"].cumsum()
+                jours_90 = j_fin[j_fin["ventes_cumulees"] >= seuil_90]
+                if not jours_90.empty:
+                    jour_fin_cycle = jours_90["jour"].iloc[0]
+                else:
+                    jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            if jour_fin_cycle is None:
+                jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            j_fin_cycle = j_fin[j_fin["jour"] <= jour_fin_cycle].copy()
+            
+            # === COÛTS VARIABLES UNIQUEMENT (explicite) ===
+            # Coût alimentaire par jour (360 FCFA/kg)
+            cout_aliment_jour = j_fin_cycle["conso_jour"] * 360
+            
+            # --- COÛTS VARIABLES UNIQUEMENT (sans les fixes) ---
+            # Poussins + Médical + Transport + Litière (UNIQUEMENT)
+            cout_poussins_total = c_fin["cout_poussins_fcfa"] if not pd.isna(c_fin["cout_poussins_fcfa"]) else 0
+            cout_medical_total = c_fin["cout_medical_fcfa"] if not pd.isna(c_fin["cout_medical_fcfa"]) else 0
+            cout_transport_total = c_fin["cout_transport_fcfa"] if not pd.isna(c_fin["cout_transport_fcfa"]) else 0
+            cout_litiere_total = c_fin["cout_litiere_fcfa"] if not pd.isna(c_fin["cout_litiere_fcfa"]) else 0
+            
+            # Extraire les valeurs si ce sont des séries pandas
+            if hasattr(cout_poussins_total, 'iloc'):
+                cout_poussins_total = cout_poussins_total.iloc[0]
+            if hasattr(cout_medical_total, 'iloc'):
+                cout_medical_total = cout_medical_total.iloc[0]
+            if hasattr(cout_transport_total, 'iloc'):
+                cout_transport_total = cout_transport_total.iloc[0]
+            if hasattr(cout_litiere_total, 'iloc'):
+                cout_litiere_total = cout_litiere_total.iloc[0]
+            
+            couts_variables_totaux = cout_poussins_total + cout_medical_total + cout_transport_total + cout_litiere_total
+            
+            # Lisser les coûts variables sur le nombre de jours
+            nb_jours_90 = len(j_fin_cycle) if len(j_fin_cycle) > 0 else 1
+            cout_journalier_variables = couts_variables_totaux / nb_jours_90 if nb_jours_90 > 0 else 0
+            
+            # Coût variable total par jour (aliment + autres variables lissés)
+            cout_var_total_jour = cout_aliment_jour + cout_journalier_variables
+            
+            # Coût variable cumulé
+            cout_var_cumule = cout_var_total_jour.cumsum()
+            
+            # Calculer le pourcentage de ventes cumulées
+            j_fin_cycle["ventes_cumulees_pct"] = (j_fin_cycle["ventes_cumulees"] / effectif_initial) * 100
+            
+            fig_cout_var = go.Figure()
+            
+            # Courbe des coûts variables par jour
+            fig_cout_var.add_trace(go.Scatter(
+                x=j_fin_cycle["jour"],
+                y=cout_var_total_jour,
                 mode="lines+markers",
-                name="Coût total par jour",
+                name="Coûts variables par jour",
                 line=dict(color="#163F36", width=2.5),
                 marker=dict(size=6, color="#E2B75F"),
                 fill="tozeroy",
                 fillcolor="rgba(78, 124, 255, 0.15)",
-                hovertemplate="Jour %{x}<br>Coût journalier : %{y:,.0f} FCFA<extra></extra>"
+                hovertemplate="Jour %{x}<br>Coûts variables : %{y:,.0f} FCFA<extra></extra>"
             ))
             
-            # Ajout de la courbe de coût cumulé (axe secondaire)
-            fig_cout.add_trace(go.Scatter(
-                x=j_fin["jour"],
-                y=cout_cumule,
+            # Ajout de la courbe des coûts variables cumulés (axe secondaire)
+            fig_cout_var.add_trace(go.Scatter(
+                x=j_fin_cycle["jour"],
+                y=cout_var_cumule,
                 mode="lines",
-                name="Coût cumulé",
+                name="Coûts variables cumulés",
                 line=dict(color="#E2B75F", width=2, dash="dot"),
                 yaxis="y2",
-                hovertemplate="Jour %{x}<br>Coût cumulé : %{y:,.0f} FCFA<extra></extra>"
+                hovertemplate="Jour %{x}<br>Coûts variables cumulés : %{y:,.0f} FCFA<extra></extra>"
             ))
             
-            plotly_light_layout(fig_cout, f"Évolution du coût total par jour - {cycle_finance}", height=400)
-            fig_cout.update_layout(
+            # Ligne verticale pour le jour de 90% de ventes
+            if jour_fin_cycle:
+                fig_cout_var.add_vline(
+                    x=jour_fin_cycle, 
+                    line_dash="dash", 
+                    line_color="#f87171",
+                    annotation_text=f"90% vendu (J{jour_fin_cycle})",
+                    annotation_position="top right"
+                )
+            
+            titre_graph = f"Évolution des coûts variables par jour - {cycle_finance} (fin à 90% des ventes : J{jour_fin_cycle})"
+            plotly_light_layout(fig_cout_var, titre_graph, height=400)
+            fig_cout_var.update_layout(
                 legend=dict(font=dict(color="#163F36", size=10)),
                 yaxis2=dict(
                     overlaying="y",
@@ -3838,367 +4260,742 @@ elif page == "💰 Finance":
                     showgrid=False,
                     tickfont=dict(color="#163F36", size=10),
                     title_font=dict(color="#163F36"),
-                    title_text="Coût cumulé (FCFA)"
+                    title_text="Coûts variables cumulés (FCFA)"
                 )
             )
-            fig_cout.update_xaxes(title_text="Jour du cycle")
-            fig_cout.update_yaxes(title_text="Coût journalier (FCFA)")
-            st.plotly_chart(fig_cout, use_container_width=True)
+            fig_cout_var.update_xaxes(title_text="Jour du cycle")
+            fig_cout_var.update_yaxes(title_text="Coûts variables journaliers (FCFA)")
+            st.plotly_chart(fig_cout_var, use_container_width=True)
             
             # ============================================================
-            # INTERPRÉTATIONS DYNAMIQUES - COÛT TOTAL PAR JOUR
+            # INTERPRÉTATIONS DYNAMIQUES - COÛTS VARIABLES
             # ============================================================
             with st.expander("📖 Interprétations", expanded=False):
                 
-                # Calculs dynamiques
-                cout_moyen_journalier = cout_total_jour.mean()
-                cout_max_journalier = cout_total_jour.max()
-                
-                # CORRECTION : Trouver le jour correspondant au coût maximum
-                if not cout_total_jour.empty and cout_max_journalier > 0:
-                    # Récupérer l'index de la ligne où le coût est maximum
-                    idx_max = cout_total_jour.idxmax()
-                    # Récupérer le jour correspondant dans la colonne "jour"
-                    jour_max_cout = j_fin.loc[idx_max, "jour"] if idx_max in j_fin.index else 0
-                else:
-                    jour_max_cout = 0
+                    # Calculs dynamiques
+                    cout_var_moyen_journalier = cout_var_total_jour.mean()
+                    cout_var_max_journalier = cout_var_total_jour.max()
                     
-                cout_cumule_final = cout_cumule.iloc[-1] if not cout_cumule.empty else 0
-                
-                # Détection de la progression
-                if len(j_fin) >= 2:
-                    debut = cout_total_jour.iloc[:len(j_fin)//3].mean() if len(j_fin) >= 3 else cout_total_jour.iloc[0]
-                    fin = cout_total_jour.iloc[-len(j_fin)//3:].mean() if len(j_fin) >= 3 else cout_total_jour.iloc[-1]
-                    progression = (fin - debut) / debut * 100 if debut > 0 else 0
-                else:
-                    progression = 0
-                
-                if progression > 50:
-                    texte_progression = f"Forte augmentation du coût (+{progression:.0f}%) en fin de cycle"
-                    couleur_prog = "#f87171"
-                elif progression > 20:
-                    texte_progression = f"Augmentation modérée du coût (+{progression:.0f}%)"
-                    couleur_prog = "#E2B75F"
-                elif progression < -20:
-                    texte_progression = f"Baisse significative du coût ({progression:.0f}%)"
-                    couleur_prog = "#34d399"
-                elif progression < -5:
-                    texte_progression = f"Légère baisse du coût ({progression:.0f}%)"
-                    couleur_prog = "#34d399"
-                else:
-                    texte_progression = f"Coût stable tout au long du cycle (variation de {progression:+.0f}%)"
-                    couleur_prog = "#34d399"
-                
-                # === PART DE L'ALIMENT ===
-                if cout_total_jour.sum() > 0 and cout_total_jour.mean() > 0:
-                    part_aliment_jour = (cout_aliment_jour / cout_total_jour).mean() * 100
-                    
-                    if part_aliment_jour > 80:
-                        alerte_aliment = f"L'aliment représente plus de 80% du coût journalier (très élevé)"
-                        couleur_aliment = "#f87171"
-                        reference_aliment = "(Réf. : < 45% pour être maîtrisé)"
-                    elif part_aliment_jour > 70:
-                        alerte_aliment = f"L'aliment représente 70-80% du coût journalier"
-                        couleur_aliment = "#E2B75F"
-                        reference_aliment = "(Réf. : < 45% pour être maîtrisé)"
-                    elif part_aliment_jour > 45:
-                        alerte_aliment = f"Part de l'aliment : {part_aliment_jour:.0f}% (au-dessus de la référence)"
-                        couleur_aliment = "#E2B75F"
-                        reference_aliment = "(Réf. : < 45% pour être maîtrisé)"
+                    if not cout_var_total_jour.empty and cout_var_max_journalier > 0:
+                        idx_max = cout_var_total_jour.idxmax()
+                        jour_max_cout = j_fin_cycle.loc[idx_max, "jour"] if idx_max in j_fin_cycle.index else 0
                     else:
-                        alerte_aliment = f"Part de l'aliment maîtrisée ({part_aliment_jour:.0f}%)"
-                        couleur_aliment = "#34d399"
-                        reference_aliment = "(< 45% : bonne maîtrise)"
-                else:
-                    part_aliment_jour = 0
-                    alerte_aliment = "Données insuffisantes pour calculer la part de l'aliment"
-                    reference_aliment = ""
-                    couleur_aliment = "#6b7280"
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    # Conteneur 1 : Statistiques générales
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:#163F36;">
-                        <div class="metric-label" style="font-size: 16px;">Statistiques du coût journalier</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • Coût moyen : {cout_moyen_journalier:,.0f} FCFA/jour<br>
-                            • Coût maximum : {cout_max_journalier:,.0f} FCFA (J{jour_max_cout})<br>
-                            • Coût total cumulé : {cout_cumule_final/1e6:.2f} M FCFA
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        jour_max_cout = 0
+                        
+                    cout_var_cumule_final = cout_var_cumule.iloc[-1] if not cout_var_cumule.empty else 0
                     
-                    # Conteneur 2 : Progression du coût
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:{couleur_prog};">
-                        <div class="metric-label" style="font-size: 16px;">Progression du coût</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • {texte_progression}<br>
-                            • Début cycle : {debut:,.0f} FCFA/jour → Fin cycle : {fin:,.0f} FCFA/jour
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    # Conteneur 3 : Part de l'aliment
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:{couleur_aliment};">
-                        <div class="metric-label" style="font-size: 16px;">Part de l'aliment</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • {alerte_aliment}<br>
-                            • Part moyenne : {part_aliment_jour:.0f}% du coût journalier<br>
-                            • <span style="color: #6b7280; font-size: 11px;">{reference_aliment}</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # Récupérer le CA du cycle
+                    ca_cycle = c_fin["ca_fcfa"]
+                    if hasattr(ca_cycle, 'iloc'):
+                        ca_cycle = ca_cycle.iloc[0]
                     
-                    # Conteneur 4 : Synthèse
-                    if cout_moyen_journalier > 0:
-                        if cout_cumule_final > c_fin["ca_fcfa"]:
-                            synthese = "Coût total supérieur au CA → cycle déficitaire"
-                        elif cout_cumule_final > c_fin["ca_fcfa"] * 0.9:
-                            synthese = "Coût proche du CA → marge faible"
+                    # Détection de la progression
+                    if len(j_fin_cycle) >= 2:
+                        debut = cout_var_total_jour.iloc[:len(j_fin_cycle)//3].mean() if len(j_fin_cycle) >= 3 else cout_var_total_jour.iloc[0]
+                        fin = cout_var_total_jour.iloc[-len(j_fin_cycle)//3:].mean() if len(j_fin_cycle) >= 3 else cout_var_total_jour.iloc[-1]
+                        progression = (fin - debut) / debut * 100 if debut > 0 else 0
+                    else:
+                        progression = 0
+                    
+                    if progression > 50:
+                        texte_progression = f"Forte augmentation des coûts variables (+{progression:.0f}%) en fin de cycle"
+                        couleur_prog = "#f87171"
+                    elif progression > 20:
+                        texte_progression = f"Augmentation modérée des coûts variables (+{progression:.0f}%)"
+                        couleur_prog = "#E2B75F"
+                    elif progression < -20:
+                        texte_progression = f"Baisse significative des coûts variables ({progression:.0f}%)"
+                        couleur_prog = "#34d399"
+                    elif progression < -5:
+                        texte_progression = f"Légère baisse des coûts variables ({progression:.0f}%)"
+                        couleur_prog = "#34d399"
+                    else:
+                        texte_progression = f"Coûts variables stables (variation de {progression:+.0f}%)"
+                        couleur_prog = "#34d399"
+                    
+                    # Part de l'aliment dans les coûts variables
+                    if cout_var_total_jour.sum() > 0 and cout_var_total_jour.mean() > 0:
+                        part_aliment_var = (cout_aliment_jour / cout_var_total_jour).mean() * 100
+                        
+                        if part_aliment_var > 90:
+                            alerte_aliment = f"L'aliment représente plus de 90% des coûts variables"
+                            reference_aliment = "(> 90% → dépendance excessive)"
+                            couleur_aliment = "#f87171"
+                        elif part_aliment_var > 80:
+                            alerte_aliment = f"L'aliment représente 80-90% des coûts variables"
+                            reference_aliment = "(80-90% → part élevée, à surveiller)"
+                            couleur_aliment = "#E2B75F"
                         else:
-                            synthese = "Coût maîtrisé par rapport au CA"
+                            alerte_aliment = f"Part de l'aliment : {part_aliment_var:.0f}% des coûts variables"
+                            reference_aliment = "(< 80% → bonne diversification)"
+                            couleur_aliment = "#34d399"
                     else:
-                        synthese = "Données insuffisantes pour l'analyse"
+                        part_aliment_var = 0
+                        alerte_aliment = "Données insuffisantes"
+                        reference_aliment = ""
+                        couleur_aliment = "#6b7280"
                     
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:#D4A373;">
-                        <div class="metric-label" style="font-size: 16px;">Synthèse</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • {synthese}<br>
-                            • Coût journalier moyen : {cout_moyen_journalier:,.0f} FCFA
+                    # Vérification des coûts exclus
+                    couts_fixes_totaux = (c_fin["cout_salaires_fcfa"] + c_fin["cout_loyer_fcfa"] + 
+                                          c_fin["cout_eau_elec_fcfa"] + c_fin["cout_telecom_fcfa"] + 
+                                          c_fin["cout_autres_fcfa"])
+                    if hasattr(couts_fixes_totaux, 'iloc'):
+                        couts_fixes_totaux = couts_fixes_totaux.iloc[0]
+                    
+                    # Comparaison CA vs Coûts variables
+                    if ca_cycle > 0 and cout_var_cumule_final > 0:
+                        ratio_cv_ca = (cout_var_cumule_final / ca_cycle) * 100
+                        if ratio_cv_ca < 70:
+                            statut_cv = "Coûts variables maîtrisés"
+                            couleur_cv = "#34d399"
+                            reference_cv = "(< 70% du CA → bonne performance)"
+                        elif ratio_cv_ca < 85:
+                            statut_cv = "Coûts variables modérés"
+                            couleur_cv = "#E2B75F"
+                            reference_cv = "(70-85% du CA → performance correcte)"
+                        else:
+                            statut_cv = "⚠️ Coûts variables élevés"
+                            couleur_cv = "#f87171"
+                            reference_cv = "(> 85% du CA → marge brute réduite)"
+                    else:
+                        ratio_cv_ca = 0
+                        statut_cv = "Données insuffisantes"
+                        couleur_cv = "#6b7280"
+                        reference_cv = ""
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:#163F36;">
+                            <div class="metric-label" style="font-size: 16px;">Statistiques des coûts variables</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • Coût variable moyen : {cout_var_moyen_journalier:,.0f} FCFA/jour<br>
+                                • Coût variable maximum : {cout_var_max_journalier:,.0f} FCFA (J{jour_max_cout})<br>
+                                • Coût variable total cumulé : <strong>{cout_var_cumule_final/1e6:.2f} M FCFA</strong><br>
+                                • CA du cycle : <strong>{ca_cycle/1e6:.2f} M FCFA</strong>
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_cv};">
+                            <div class="metric-label" style="font-size: 16px;">Coûts variables vs CA</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {statut_cv}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_cv}</span><br>
+                                • Coûts variables = {ratio_cv_ca:.0f}% du CA
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_aliment};">
+                            <div class="metric-label" style="font-size: 16px;">Part de l'aliment (coûts variables)</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {alerte_aliment}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_aliment}</span><br>
+                                • Part moyenne : {part_aliment_var:.0f}% des coûts variables
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Synthèse avec comparaison CA vs Coûts variables
+                        if ca_cycle > 0 and cout_var_cumule_final > 0:
+                            marge_brute = ca_cycle - cout_var_cumule_final
+                            marge_brute_pct = (marge_brute / ca_cycle) * 100
+                            
+                            if marge_brute_pct > 30:
+                                synthese = f"Marge brute excellente : {marge_brute/1e6:.2f} M FCFA"
+                                reference_synthese = "(> 30% → très bonne rentabilité)"
+                                couleur_synthese = "#34d399"
+                            elif marge_brute_pct > 20:
+                                synthese = f"Marge brute correcte : {marge_brute/1e6:.2f} M FCFA"
+                                reference_synthese = "(20-30% → rentabilité acceptable)"
+                                couleur_synthese = "#E2B75F"
+                            elif marge_brute_pct > 10:
+                                synthese = f"Marge brute faible : {marge_brute/1e6:.2f} M FCFA"
+                                reference_synthese = "(10-20% → marge insuffisante)"
+                                couleur_synthese = "#fbbf24"
+                            else:
+                                synthese = f"🔴 Marge brute critique : {marge_brute/1e6:.2f} M FCFA"
+                                reference_synthese = "(< 10% → marge très faible)"
+                                couleur_synthese = "#f87171"
+                        else:
+                            synthese = "Données insuffisantes pour l'analyse"
+                            reference_synthese = ""
+                            couleur_synthese = "#6b7280"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_synthese};">
+                            <div class="metric-label" style="font-size: 16px;">Synthèse</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {synthese}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_synthese}</span><br>
+                                • Coût variable journalier moyen : {cout_var_moyen_journalier:,.0f} FCFA<br>
+                                • <span style="color: #6b7280; font-size: 11px;">(Charges fixes exclues : {couts_fixes_totaux/1e6:.2f} M FCFA)</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
         
         else:
-            st.info("Données journalières insuffisantes pour calculer le coût par jour.")
+            st.info("Données journalières insuffisantes pour calculer les coûts variables.")
     else:
         st.caption("Graphique masqué. Cochez la case pour l'afficher.")
 
     # ============================================================
-    # SECTION : ÉVOLUTION DU COÛT TOTAL CUMULÉ (poussin + aliment)
+    # SECTION : ÉVOLUTION DU COÛT TOTAL & variable CUMULÉ 
     # ============================================================
-    st.markdown("### 📦 Coût cumulé (aliment + poussins uniquement)")
+    st.markdown("### 🐣 Évolution du coût total cumulé par sujet")
+    afficher_cout_total_cumul = st.checkbox("", value=True, key="check_cout_total_cumul")
 
-    afficher_cout_cumul = st.checkbox("Afficher l'évolution du coût total cumulé", value=True, key="check_cout_cumul")
-
-    if afficher_cout_cumul:
+    if afficher_cout_total_cumul:
+        # --- S'assurer que cycle_finance est une chaîne ---
+        cycle_finance_str = str(cycle_finance) if not isinstance(cycle_finance, str) else cycle_finance
+        
+        # Récupérer les données du cycle sélectionné
+        j_fin = journalier[journalier["cycle_id"] == cycle_finance_str].copy()
+        c_fin = cycles_recap[cycles_recap["cycle_id"] == cycle_finance_str].iloc[0]
+        
         if not j_fin.empty:
-            # Coût d'achat des poussins (montant total)
-            cout_poussins_total = c_fin.get("cout_poussins_fcfa", 0)
+            
+            # === DÉFINIR LA FIN DU CYCLE À 90% DES VENTES ===
+            effectif_initial = c_fin["effectif_initial"]
+            if hasattr(effectif_initial, 'iloc'):
+                effectif_initial = effectif_initial.iloc[0]
+            
+            seuil_90 = effectif_initial * 0.9
+            
+            jour_fin_cycle = None
+            if "vendus_jour" in j_fin.columns and "effectif_restant" in j_fin.columns:
+                j_fin["ventes_cumulees"] = j_fin["vendus_jour"].cumsum()
+                jours_90 = j_fin[j_fin["ventes_cumulees"] >= seuil_90]
+                if not jours_90.empty:
+                    jour_fin_cycle = jours_90["jour"].iloc[0]
+                else:
+                    jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            if jour_fin_cycle is None:
+                jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            j_fin_cycle = j_fin[j_fin["jour"] <= jour_fin_cycle].copy()
+            
+            # === CALCUL DES COÛTS ===
+            
+            # 1. Coût du poussin par sujet (coût initial, dès J1)
+            cout_poussins_total = c_fin["cout_poussins_fcfa"] if pd.notna(c_fin["cout_poussins_fcfa"]) else 0
             if hasattr(cout_poussins_total, 'iloc'):
                 cout_poussins_total = cout_poussins_total.iloc[0]
             
-            # Coût alimentaire par jour (360 FCFA/kg)
-            cout_aliment_par_jour = j_fin["conso_jour"] * 360
+            cout_poussin_par_sujet = cout_poussins_total / effectif_initial if effectif_initial > 0 else 0
             
-            # Calcul du coût total cumulé (poussins + aliment cumulé)
-            cout_aliment_cumule = cout_aliment_par_jour.cumsum()
-            cout_total_cumule = cout_poussins_total + cout_aliment_cumule
+            # 2. Coût alimentaire par jour par sujet (360 FCFA/kg)
+            if "conso_jour" in j_fin_cycle.columns and j_fin_cycle["conso_jour"].notna().any():
+                cout_aliment_jour = j_fin_cycle["conso_jour"] * 360
+            else:
+                conso_totale = c_fin["conso_totale_kg"] if pd.notna(c_fin["conso_totale_kg"]) else 0
+                if hasattr(conso_totale, 'iloc'):
+                    conso_totale = conso_totale.iloc[0]
+                nb_jours_cycle = len(j_fin_cycle) if len(j_fin_cycle) > 0 else 1
+                conso_journaliere = conso_totale / nb_jours_cycle if nb_jours_cycle > 0 else 0
+                cout_aliment_jour = pd.Series([conso_journaliere * 360] * len(j_fin_cycle), index=j_fin_cycle.index)
             
-            # Coût par sujet
-            effectif_initial = c_fin.get("effectif_initial", 1)
-            if hasattr(effectif_initial, 'iloc'):
-                effectif_initial = effectif_initial.iloc[0]
-            cout_par_sujet = cout_total_cumule / effectif_initial
+            cout_aliment_par_sujet = cout_aliment_jour / effectif_initial
             
-            # Graphique du coût total cumulé
-            fig_cout_cumul = go.Figure()
-            fig_cout_cumul.add_trace(go.Scatter(
-                x=j_fin["jour"],
-                y=cout_total_cumule,
-                mode="lines+markers",
-                name="Coût total cumulé (lot)",
-                line=dict(color="#163F36", width=2.5),
-                marker=dict(size=6, color="#E2B75F"),
-                fill="tozeroy",
-                fillcolor="rgba(78, 124, 255, 0.15)",
-                hovertemplate=f"Jour %{{x}}<br>Coût total cumulé : %{{y:,.0f}} FCFA<extra></extra>"
-            ))
+            # 3. Autres coûts variables (Médical, Transport, Litière) - LISSÉS
+            cout_medical = c_fin["cout_medical_fcfa"] if pd.notna(c_fin["cout_medical_fcfa"]) else 0
+            cout_transport = c_fin["cout_transport_fcfa"] if pd.notna(c_fin["cout_transport_fcfa"]) else 0
+            cout_litiere = c_fin["cout_litiere_fcfa"] if pd.notna(c_fin["cout_litiere_fcfa"]) else 0
             
-            plotly_light_layout(fig_cout_cumul, f"Évolution du coût total cumulé (poussin + aliment) - {cycle_finance}", height=400)
-            fig_cout_cumul.update_layout(
-                legend=dict(font=dict(color="#163F36", size=10))
-            )
-            fig_cout_cumul.update_xaxes(title_text="Jour du cycle")
-            fig_cout_cumul.update_yaxes(title_text="Coût total cumulé (FCFA)")
-            st.plotly_chart(fig_cout_cumul, use_container_width=True)
+            if hasattr(cout_medical, 'iloc'):
+                cout_medical = cout_medical.iloc[0]
+            if hasattr(cout_transport, 'iloc'):
+                cout_transport = cout_transport.iloc[0]
+            if hasattr(cout_litiere, 'iloc'):
+                cout_litiere = cout_litiere.iloc[0]
             
-            # Graphique du coût par sujet
-            fig_cout_sujet = go.Figure()
-            fig_cout_sujet.add_trace(go.Scatter(
-                x=j_fin["jour"],
-                y=cout_par_sujet,
-                mode="lines+markers",
-                name="Coût par sujet",
-                line=dict(color="#E2B75F", width=2.5),
-                marker=dict(size=6, color="#163F36"),
-                fill="tozeroy",
-                fillcolor="rgba(226, 183, 95, 0.15)",
-                hovertemplate=f"Jour %{{x}}<br>Coût par sujet : %{{y:,.0f}} FCFA<extra></extra>"
-            ))
+            autres_variables_total = cout_medical + cout_transport + cout_litiere
+            nb_jours_90 = len(j_fin_cycle) if len(j_fin_cycle) > 0 else 1
+            autres_variables_par_jour = autres_variables_total / nb_jours_90 if nb_jours_90 > 0 else 0
+            autres_variables_par_sujet_par_jour = autres_variables_par_jour / effectif_initial if effectif_initial > 0 else 0
             
-            plotly_light_layout(fig_cout_sujet, f"Évolution du coût par sujet (poussin + aliment) - {cycle_finance}", height=400)
-            fig_cout_sujet.update_layout(
-                legend=dict(font=dict(color="#163F36", size=10))
-            )
-            fig_cout_sujet.update_xaxes(title_text="Jour du cycle")
-            fig_cout_sujet.update_yaxes(title_text="Coût par sujet (FCFA)")
-            st.plotly_chart(fig_cout_sujet, use_container_width=True)
-
+            # 4. Charges fixes (Salaires, Loyer, Eau/Élec, Télécom, Autres) - LISSÉES
+            cout_salaires = c_fin["cout_salaires_fcfa"] if pd.notna(c_fin["cout_salaires_fcfa"]) else 0
+            cout_loyer = c_fin["cout_loyer_fcfa"] if pd.notna(c_fin["cout_loyer_fcfa"]) else 0
+            cout_eau_elec = c_fin["cout_eau_elec_fcfa"] if pd.notna(c_fin["cout_eau_elec_fcfa"]) else 0
+            cout_telecom = c_fin["cout_telecom_fcfa"] if pd.notna(c_fin["cout_telecom_fcfa"]) else 0
+            cout_autres = c_fin["cout_autres_fcfa"] if pd.notna(c_fin["cout_autres_fcfa"]) else 0
             
-            # ============================================================
-            # INTERPRÉTATIONS DYNAMIQUES - COÛTS CUMULÉS
-            # ============================================================
-            with st.expander("📖 Interprétations", expanded=False):
-                
-                # Calculs dynamiques
-                cout_total_final = cout_total_cumule.iloc[-1] if not cout_total_cumule.empty else 0
-                cout_par_sujet_final = cout_par_sujet.iloc[-1] if not cout_par_sujet.empty else 0
-                prix_vente_moyen = c_fin.get("prix_moyen_fcfa", 0)
-                if hasattr(prix_vente_moyen, 'iloc'):
-                    prix_vente_moyen = prix_vente_moyen.iloc[0]
-                
-                # Pente du coût cumulé (augmentation moyenne par jour)
-                if len(j_fin) >= 2:
-                    pente_cout = (cout_total_cumule.iloc[-1] - cout_total_cumule.iloc[0]) / (j_fin["jour"].iloc[-1] - j_fin["jour"].iloc[0])
+            if hasattr(cout_salaires, 'iloc'):
+                cout_salaires = cout_salaires.iloc[0]
+            if hasattr(cout_loyer, 'iloc'):
+                cout_loyer = cout_loyer.iloc[0]
+            if hasattr(cout_eau_elec, 'iloc'):
+                cout_eau_elec = cout_eau_elec.iloc[0]
+            if hasattr(cout_telecom, 'iloc'):
+                cout_telecom = cout_telecom.iloc[0]
+            if hasattr(cout_autres, 'iloc'):
+                cout_autres = cout_autres.iloc[0]
+            
+            charges_fixes_total = cout_salaires + cout_loyer + cout_eau_elec + cout_telecom + cout_autres
+            charges_fixes_par_jour = charges_fixes_total / nb_jours_90 if nb_jours_90 > 0 else 0
+            charges_fixes_par_sujet_par_jour = charges_fixes_par_jour / effectif_initial if effectif_initial > 0 else 0
+            
+            # --- Coût TOTAL par sujet par jour ---
+            # J1 : coût poussin + aliment + autres variables + charges fixes
+            # J2+ : aliment + autres variables + charges fixes (le poussin déjà payé)
+            
+            # Créer une série de coût total par sujet par jour
+            cout_total_par_sujet = pd.Series(index=j_fin_cycle.index, dtype=float)
+            
+            for idx, jour in enumerate(j_fin_cycle["jour"]):
+                if idx == 0:  # Jour 1 : on ajoute le coût du poussin
+                    cout_total_par_sujet.iloc[idx] = (
+                        cout_poussin_par_sujet +
+                        cout_aliment_par_sujet.iloc[idx] +
+                        autres_variables_par_sujet_par_jour +
+                        charges_fixes_par_sujet_par_jour
+                    )
                 else:
-                    pente_cout = 0
+                    cout_total_par_sujet.iloc[idx] = (
+                        cout_aliment_par_sujet.iloc[idx] +
+                        autres_variables_par_sujet_par_jour +
+                        charges_fixes_par_sujet_par_jour
+                    )
+            
+            # Coût total cumulé par sujet
+            cout_total_cumule_par_sujet = cout_total_par_sujet.cumsum()
+            
+            if cout_total_cumule_par_sujet.iloc[-1] == 0:
+                st.warning(f"⚠️ Données de coûts insuffisantes pour {cycle_finance_str}.")
+            else:
+                fig_cout_total_cumul = go.Figure()
+                fig_cout_total_cumul.add_trace(go.Scatter(
+                    x=j_fin_cycle["jour"],
+                    y=cout_total_cumule_par_sujet,
+                    mode="lines+markers",
+                    name="Coût total cumulé par sujet",
+                    line=dict(color="#163F36", width=2.5),
+                    marker=dict(size=6, color="#E2B75F"),
+                    fill="tozeroy",
+                    fillcolor="rgba(78, 124, 255, 0.15)",
+                    hovertemplate="Jour %{x}<br>Coût total cumulé : %{y:,.0f} FCFA/sujet<extra></extra>"
+                ))
                 
-                # Marge par sujet (prix de vente - coût par sujet)
-                if prix_vente_moyen > 0 and cout_par_sujet_final > 0:
-                    marge_sujet = prix_vente_moyen - cout_par_sujet_final
-                    if marge_sujet > 200:
-                        texte_marge = f" Marge positive : {marge_sujet:.0f} FCFA/sujet"
-                        couleur_marge = "#34d399"
-                    elif marge_sujet > 0:
-                        texte_marge = f"Marge faible : {marge_sujet:.0f} FCFA/sujet"
-                        couleur_marge = "#E2B75F"
-                    else:
-                        texte_marge = f"Marge négative : {marge_sujet:.0f} FCFA/sujet"
-                        couleur_marge = "#f87171"
-                else:
-                    texte_marge = "Données de prix ou coût manquantes"
-                    couleur_marge = "#6b7280"
                 
-                # Comparaison avec le seuil de rentabilité
-                seuil_rentabilite = c_fin.get("seuil_rentabilite_fcfa", 0)
-                if hasattr(seuil_rentabilite, 'iloc'):
-                    seuil_rentabilite = seuil_rentabilite.iloc[0]
                 
-                if seuil_rentabilite > 0:
-                    if cout_total_final < seuil_rentabilite:
-                        texte_seuil = f"Coût total ({cout_total_final/1e6:.1f} M) < seuil ({seuil_rentabilite/1e6:.1f} M)"
-                        couleur_seuil = "#f87171"
-                    else:
-                        texte_seuil = f"Coût total ({cout_total_final/1e6:.1f} M) ≥ seuil ({seuil_rentabilite/1e6:.1f} M)"
-                        couleur_seuil = "#34d399"
-                else:
-                    texte_seuil = " Seuil de rentabilité non disponible"
-                    couleur_seuil = "#6b7280"
+                if jour_fin_cycle:
+                    fig_cout_total_cumul.add_vline(
+                        x=jour_fin_cycle, 
+                        line_dash="dash", 
+                        line_color="#f87171",
+                        annotation_text=f"90% vendu (J{jour_fin_cycle})",
+                        annotation_position="top right"
+                    )
                 
-                col1, col2 = st.columns(2)
+                titre = f"Évolution du coût total cumulé par sujet - {cycle_finance} (fin à 90% : J{jour_fin_cycle})"
+                plotly_light_layout(fig_cout_total_cumul, titre, height=400)
+                fig_cout_total_cumul.update_xaxes(title_text="Jour du cycle")
+                fig_cout_total_cumul.update_yaxes(title_text="Coût total cumulé (FCFA/sujet)")
+                st.plotly_chart(fig_cout_total_cumul, use_container_width=True, key=f"plotly_cout_total_cumul_{cycle_finance_str}")
                 
-                with col1:
-                    # Conteneur 1 : Coûts finaux
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:#163F36;">
-                        <div class="metric-label" style="font-size: 16px;">Coûts finaux</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • Coût total cumulé : {cout_total_final/1e6:.2f} M FCFA<br>
-                            • Coût par sujet : {cout_par_sujet_final:,.0f} FCFA<br>
-                            • Augmentation moyenne : {pente_cout:,.0f} FCFA/jour
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                                # --- INTERPRÉTATION COÛT TOTAL CUMULÉ PAR SUJET ---
+                with st.expander("📖 Interprétations - Coût total cumulé par sujet", expanded=False):
                     
-                    # Conteneur 2 : Comparaison seuil de rentabilité
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:{couleur_seuil};">
-                        <div class="metric-label" style="font-size: 16px;">Seuil de rentabilité</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • {texte_seuil}
+                    cout_final_sujet = cout_total_cumule_par_sujet.iloc[-1] if not cout_total_cumule_par_sujet.empty else 0
+                    cout_poussin_sujet = cout_poussin_par_sujet
+                    
+                    # Pente du coût cumulé (hors J1)
+                    if len(j_fin_cycle) >= 3:
+                        pente = (cout_total_cumule_par_sujet.iloc[-1] - cout_total_cumule_par_sujet.iloc[1]) / (j_fin_cycle["jour"].iloc[-1] - j_fin_cycle["jour"].iloc[1])
+                    else:
+                        pente = 0
+                    
+                    prix_vente_moyen = c_fin.get("prix_moyen_fcfa", 0)
+                    if hasattr(prix_vente_moyen, 'iloc'):
+                        prix_vente_moyen = prix_vente_moyen.iloc[0]
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:#163F36;">
+                            <div class="metric-label" style="font-size: 16px;">Coût total cumulé par sujet</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • Coût poussin : <strong>{cout_poussin_sujet:,.0f}</strong> FCFA/sujet (J1)<br>
+                                • Coût total final : <strong>{cout_final_sujet:,.0f}</strong> FCFA/sujet<br>
+                                • Augmentation moyenne (hors J1) : {pente:,.0f} FCFA/sujet/jour<br>
+                                • Fin du cycle à 90% : J{jour_fin_cycle}
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    # Conteneur 3 : Marge par sujet (avec VRAI coût)
-                    veritable_cout_par_sujet = c_fin["depenses_totales_fcfa"] / c_fin["volume_vendu"] if c_fin["volume_vendu"] > 0 else 0
-
-                    if prix_vente_moyen > 0 and veritable_cout_par_sujet > 0:
-                        marge_sujet_reelle = prix_vente_moyen - veritable_cout_par_sujet
-                        if marge_sujet_reelle > 200:
-                            texte_marge = f"Marge excellente : {marge_sujet_reelle:.0f} FCFA/sujet"
-                            couleur_marge = "#34d399"
-                        elif marge_sujet_reelle > 0:
-                            texte_marge = f"Marge positive : {marge_sujet_reelle:.0f} FCFA/sujet"
-                            couleur_marge = "#E2B75F"
+                        """, unsafe_allow_html=True)
+                        
+                        # === MARGE PAR SUJET AVEC RÉFÉRENCES ===
+                        if prix_vente_moyen > 0 and cout_final_sujet > 0:
+                            marge = prix_vente_moyen - cout_final_sujet
+                            if marge > 200:
+                                texte_marge = f"Marge excellente : {marge:.0f} FCFA/sujet"
+                                reference_marge = "(> 200 FCFA/sujet → très bonne rentabilité)"
+                                couleur_marge = "#34d399"
+                            elif marge > 50:
+                                texte_marge = f"Marge correcte : {marge:.0f} FCFA/sujet"
+                                reference_marge = "(50-200 FCFA/sujet → rentabilité acceptable)"
+                                couleur_marge = "#E2B75F"
+                            elif marge > 0:
+                                texte_marge = f"Marge faible : {marge:.0f} FCFA/sujet"
+                                reference_marge = "(0-50 FCFA/sujet → marge insuffisante)"
+                                couleur_marge = "#fbbf24"
+                            else:
+                                texte_marge = f"🔴 Marge négative : {marge:.0f} FCFA/sujet"
+                                reference_marge = "(< 0 FCFA/sujet → cycle déficitaire)"
+                                couleur_marge = "#f87171"
                         else:
-                            texte_marge = f"🔴 Marge négative : {marge_sujet_reelle:.0f} FCFA/sujet"
-                            couleur_marge = "#f87171"
-                    else:
-                        texte_marge = "Données de prix ou coût manquantes"
-                        couleur_marge = "#6b7280"
-
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:{couleur_marge};">
-                        <div class="metric-label" style="font-size: 16px;">Marge par sujet</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • {texte_marge}<br>
-                            • Prix de vente moyen : {prix_vente_moyen:,.0f} FCFA/sujet<br>
-                            • Coût réel par sujet : {veritable_cout_par_sujet:,.0f} FCFA
+                            texte_marge = "Données insuffisantes"
+                            reference_marge = ""
+                            couleur_marge = "#6b7280"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_marge};">
+                            <div class="metric-label" style="font-size: 16px;">Marge par sujet</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {texte_marge}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_marge}</span><br>
+                                • Prix de vente moyen : {prix_vente_moyen:,.0f} FCFA/sujet
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
                     
-                    # Conteneur 4 : Synthèse
-                    # Utiliser le VRAI coût par sujet (toutes dépenses confondues)
-                    veritable_cout_par_sujet = c_fin["depenses_totales_fcfa"] / c_fin["volume_vendu"] if c_fin["volume_vendu"] > 0 else 0
-
-                    if prix_vente_moyen > 0 and veritable_cout_par_sujet > 0:
-                        marge_reelle = prix_vente_moyen - veritable_cout_par_sujet
-                    else:
-                        marge_reelle = None
-
-                    if marge_reelle is not None and marge_reelle > 200:
-                        synthese = "Cycle très rentable → marge excellente"
-                        couleur_synthese = "#34d399"
-                    elif marge_reelle is not None and marge_reelle > 0:
-                        synthese = "Cycle rentable → marge correcte"
-                        couleur_synthese = "#34d399"
-                    elif marge_reelle is not None and marge_reelle < 0:
-                        synthese = "🔴 Cycle déficitaire → priorité : augmenter le prix ou réduire les coûts"
-                        couleur_synthese = "#f87171"
-                    else:
-                        synthese = "Analyse des coûts disponible pour ce cycle"
-                        couleur_synthese = "#D4A373"
-
-                    st.markdown(f"""
-                    <div class="metric-card" style="--accent:{couleur_synthese};">
-                        <div class="metric-label" style="font-size: 16px;">Synthèse</div>
-                        <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
-                            • {synthese}<br>
-                            • Coût réel par sujet : {veritable_cout_par_sujet:,.0f} FCFA<br>
-                            • Prix de vente moyen : {prix_vente_moyen:,.0f} FCFA
+                    with col2:
+                        # === SYNTHÈSE AVEC RÉFÉRENCES ===
+                        if cout_final_sujet < prix_vente_moyen:
+                            # Calcul de la marge en pourcentage
+                            marge_pct = ((prix_vente_moyen - cout_final_sujet) / prix_vente_moyen) * 100 if prix_vente_moyen > 0 else 0
+                            if marge_pct > 15:
+                                synthese = "Coût total maîtrisé → cycle très rentable"
+                                reference_synthese = "(Marge > 15% → excellente performance)"
+                                couleur_synthese = "#34d399"
+                            elif marge_pct > 8:
+                                synthese = "Coût total correct → cycle rentable"
+                                reference_synthese = "(Marge 8-15% → performance correcte)"
+                                couleur_synthese = "#E2B75F"
+                            else:
+                                synthese = "Coût total élevé → marge faible"
+                                reference_synthese = "(Marge < 8% → amélioration nécessaire)"
+                                couleur_synthese = "#fbbf24"
+                        else:
+                            synthese = "🔴 Coût total trop élevé → cycle déficitaire"
+                            reference_synthese = "(Coût > Prix de vente → perte par sujet)"
+                            couleur_synthese = "#f87171"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_synthese};">
+                            <div class="metric-label" style="font-size: 16px;">Synthèse</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {synthese}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_synthese}</span><br>
+                                • Coût total final : {cout_final_sujet:,.0f} FCFA/sujet<br>
+                                • (Charges fixes incluses)
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
         
-           
         else:
-            st.info("Données journalières insuffisantes pour calculer les coûts cumulés.")
+            st.info("Données journalières insuffisantes.")
     else:
         st.caption("Graphique masqué. Cochez la case pour l'afficher.")
+
+    st.markdown("---")
+
+    st.markdown("### 🐣 Évolution des coûts variables cumulés par sujet")
+    afficher_cout_var_cumul = st.checkbox("", value=True, key="check_cout_var_cumul")
+
+    if afficher_cout_var_cumul:
+        # --- S'assurer que cycle_finance est une chaîne ---
+        cycle_finance_str = str(cycle_finance) if not isinstance(cycle_finance, str) else cycle_finance
+        
+        # Récupérer les données du cycle sélectionné
+        j_fin = journalier[journalier["cycle_id"] == cycle_finance_str].copy()
+        c_fin = cycles_recap[cycles_recap["cycle_id"] == cycle_finance_str].iloc[0]
+        
+        if not j_fin.empty:
             
+            # === DÉFINIR LA FIN DU CYCLE À 90% DES VENTES ===
+            effectif_initial = c_fin["effectif_initial"]
+            if hasattr(effectif_initial, 'iloc'):
+                effectif_initial = effectif_initial.iloc[0]
+            
+            seuil_90 = effectif_initial * 0.9
+            
+            jour_fin_cycle = None
+            if "vendus_jour" in j_fin.columns and "effectif_restant" in j_fin.columns:
+                j_fin["ventes_cumulees"] = j_fin["vendus_jour"].cumsum()
+                jours_90 = j_fin[j_fin["ventes_cumulees"] >= seuil_90]
+                if not jours_90.empty:
+                    jour_fin_cycle = jours_90["jour"].iloc[0]
+                else:
+                    jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            if jour_fin_cycle is None:
+                jour_fin_cycle = j_fin["jour"].iloc[-1]
+            
+            j_fin_cycle = j_fin[j_fin["jour"] <= jour_fin_cycle].copy()
+            
+            # === CALCUL DES COÛTS VARIABLES ===
+            
+            # 1. Coût du poussin par sujet (coût initial, dès J1)
+            cout_poussins_total = c_fin["cout_poussins_fcfa"] if pd.notna(c_fin["cout_poussins_fcfa"]) else 0
+            if hasattr(cout_poussins_total, 'iloc'):
+                cout_poussins_total = cout_poussins_total.iloc[0]
+            
+            cout_poussin_par_sujet = cout_poussins_total / effectif_initial if effectif_initial > 0 else 0
+            
+            # 2. Coût alimentaire par jour par sujet (360 FCFA/kg)
+            if "conso_jour" in j_fin_cycle.columns and j_fin_cycle["conso_jour"].notna().any():
+                cout_aliment_jour = j_fin_cycle["conso_jour"] * 360
+            else:
+                conso_totale = c_fin["conso_totale_kg"] if pd.notna(c_fin["conso_totale_kg"]) else 0
+                if hasattr(conso_totale, 'iloc'):
+                    conso_totale = conso_totale.iloc[0]
+                nb_jours_cycle = len(j_fin_cycle) if len(j_fin_cycle) > 0 else 1
+                conso_journaliere = conso_totale / nb_jours_cycle if nb_jours_cycle > 0 else 0
+                cout_aliment_jour = pd.Series([conso_journaliere * 360] * len(j_fin_cycle), index=j_fin_cycle.index)
+            
+            cout_aliment_par_sujet = cout_aliment_jour / effectif_initial
+            
+            # 3. Autres coûts variables (Médical, Transport, Litière) - LISSÉS
+            # EXCLURE LES CHARGES FIXES
+            cout_medical = c_fin["cout_medical_fcfa"] if pd.notna(c_fin["cout_medical_fcfa"]) else 0
+            cout_transport = c_fin["cout_transport_fcfa"] if pd.notna(c_fin["cout_transport_fcfa"]) else 0
+            cout_litiere = c_fin["cout_litiere_fcfa"] if pd.notna(c_fin["cout_litiere_fcfa"]) else 0
+            
+            if hasattr(cout_medical, 'iloc'):
+                cout_medical = cout_medical.iloc[0]
+            if hasattr(cout_transport, 'iloc'):
+                cout_transport = cout_transport.iloc[0]
+            if hasattr(cout_litiere, 'iloc'):
+                cout_litiere = cout_litiere.iloc[0]
+            
+            autres_variables_total = cout_medical + cout_transport + cout_litiere
+            nb_jours_90 = len(j_fin_cycle) if len(j_fin_cycle) > 0 else 1
+            autres_variables_par_jour = autres_variables_total / nb_jours_90 if nb_jours_90 > 0 else 0
+            autres_variables_par_sujet_par_jour = autres_variables_par_jour / effectif_initial if effectif_initial > 0 else 0
+            
+            # --- Coût VARIABLE par sujet par jour (SANS CHARGES FIXES) ---
+            # J1 : coût poussin + aliment + autres variables
+            # J2+ : aliment + autres variables (le poussin déjà payé)
+            
+            # Créer une série de coût variable par sujet par jour
+            cout_var_par_sujet = pd.Series(index=j_fin_cycle.index, dtype=float)
+            
+            for idx, jour in enumerate(j_fin_cycle["jour"]):
+                if idx == 0:  # Jour 1 : on ajoute le coût du poussin
+                    cout_var_par_sujet.iloc[idx] = (
+                        cout_poussin_par_sujet +
+                        cout_aliment_par_sujet.iloc[idx] +
+                        autres_variables_par_sujet_par_jour
+                    )
+                else:
+                    cout_var_par_sujet.iloc[idx] = (
+                        cout_aliment_par_sujet.iloc[idx] +
+                        autres_variables_par_sujet_par_jour
+                    )
+            
+            # Coût variable cumulé par sujet
+            cout_var_cumule_par_sujet = cout_var_par_sujet.cumsum()
+            
+            if cout_var_cumule_par_sujet.iloc[-1] == 0:
+                st.warning(f"⚠️ Données de coûts variables insuffisantes pour {cycle_finance_str}.")
+            else:
+                fig_cout_var_cumul = go.Figure()
+                fig_cout_var_cumul.add_trace(go.Scatter(
+                    x=j_fin_cycle["jour"],
+                    y=cout_var_cumule_par_sujet,
+                    mode="lines+markers",
+                    name="Coûts variables cumulés par sujet",
+                    line=dict(color="#163F36", width=2.5),
+                    marker=dict(size=6, color="#E2B75F"),
+                    fill="tozeroy",
+                    fillcolor="rgba(78, 124, 255, 0.15)",
+                    hovertemplate="Jour %{x}<br>Coûts variables cumulés : %{y:,.0f} FCFA<extra></extra>"
+                ))
+                
+                if jour_fin_cycle:
+                    fig_cout_var_cumul.add_vline(
+                        x=jour_fin_cycle, 
+                        line_dash="dash", 
+                        line_color="#f87171",
+                        annotation_text=f"90% vendu (J{jour_fin_cycle})",
+                        annotation_position="top right"
+                    )
+                
+                titre = f"Évolution des coûts variables cumulés par sujet - {cycle_finance} (fin à 90% : J{jour_fin_cycle})"
+                plotly_light_layout(fig_cout_var_cumul, titre, height=400)
+                fig_cout_var_cumul.update_xaxes(title_text="Jour du cycle")
+                fig_cout_var_cumul.update_yaxes(title_text="Coûts variables cumulés (FCFA/sujet)")
+                st.plotly_chart(fig_cout_var_cumul, use_container_width=True, key=f"plotly_cout_var_cumul_{cycle_finance_str}")
+                
+                # --- INTERPRÉTATION COÛTS VARIABLES CUMULÉS PAR SUJET ---
+                with st.expander("📖 Interprétations - Coûts variables cumulés par sujet", expanded=False):
+                    
+                    cout_var_final = cout_var_cumule_par_sujet.iloc[-1] if not cout_var_cumule_par_sujet.empty else 0
+                    cout_poussin_sujet = cout_poussin_par_sujet
+                    
+                    # Pente du coût variable cumulé (hors J1)
+                    if len(j_fin_cycle) >= 3:
+                        pente = (cout_var_cumule_par_sujet.iloc[-1] - cout_var_cumule_par_sujet.iloc[1]) / (j_fin_cycle["jour"].iloc[-1] - j_fin_cycle["jour"].iloc[1])
+                    else:
+                        pente = 0
+                    
+                    # Part de l'aliment dans les coûts variables
+                    if cout_var_par_sujet.sum() > 0:
+                        part_aliment = (cout_aliment_par_sujet.sum() / (cout_aliment_par_sujet.sum() + autres_variables_par_sujet_par_jour * nb_jours_90)) * 100
+                    else:
+                        part_aliment = 0
+                    
+                    prix_vente_moyen = c_fin.get("prix_moyen_fcfa", 0)
+                    if hasattr(prix_vente_moyen, 'iloc'):
+                        prix_vente_moyen = prix_vente_moyen.iloc[0]
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:#163F36;">
+                            <div class="metric-label" style="font-size: 16px;">Coûts variables cumulés par sujet</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • Coût poussin : <strong>{cout_poussin_sujet:,.0f}</strong> FCFA/sujet (J1)<br>
+                                • Coûts variables finaux : <strong>{cout_var_final:,.0f}</strong> FCFA/sujet<br>
+                                • Augmentation moyenne (hors J1) : {pente:,.0f} FCFA/sujet/jour<br>
+                                • Fin du cycle à 90% : J{jour_fin_cycle}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # === PART DE L'ALIMENT AVEC RÉFÉRENCES ===
+                        if part_aliment > 85:
+                            alerte_aliment = f"⚠️ L'aliment représente {part_aliment:.0f}% des coûts variables"
+                            reference_aliment = "(> 85% → dépendance excessive à l'aliment)"
+                            couleur_aliment = "#f87171"
+                        elif part_aliment > 75:
+                            alerte_aliment = f"L'aliment représente {part_aliment:.0f}% des coûts variables"
+                            reference_aliment = "(75-85% → part élevée, à surveiller)"
+                            couleur_aliment = "#E2B75F"
+                        else:
+                            alerte_aliment = f"L'aliment représente {part_aliment:.0f}% des coûts variables"
+                            reference_aliment = "(< 75% → bonne diversification des coûts)"
+                            couleur_aliment = "#34d399"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_aliment};">
+                            <div class="metric-label" style="font-size: 16px;">Part de l'aliment</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {alerte_aliment}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_aliment}</span><br>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        # === MARGE BRUTE PAR SUJET AVEC RÉFÉRENCES ===
+                        if prix_vente_moyen > 0 and cout_var_final > 0:
+                            marge_brute = prix_vente_moyen - cout_var_final
+                            marge_brute_pct = (marge_brute / prix_vente_moyen) * 100
+                            
+                            if marge_brute_pct > 30:
+                                texte_marge = f"Marge brute excellente : {marge_brute:.0f} FCFA/sujet"
+                                reference_marge = "(> 30% → très bonne marge brute)"
+                                couleur_marge = "#34d399"
+                            elif marge_brute_pct > 20:
+                                texte_marge = f"Marge brute correcte : {marge_brute:.0f} FCFA/sujet"
+                                reference_marge = "(20-30% → marge brute acceptable)"
+                                couleur_marge = "#E2B75F"
+                            elif marge_brute_pct > 10:
+                                texte_marge = f"Marge brute faible : {marge_brute:.0f} FCFA/sujet"
+                                reference_marge = "(10-20% → marge brute insuffisante)"
+                                couleur_marge = "#fbbf24"
+                            else:
+                                texte_marge = f"🔴 Marge brute très faible : {marge_brute:.0f} FCFA/sujet"
+                                reference_marge = "(< 10% → marge brute critique)"
+                                couleur_marge = "#f87171"
+                        else:
+                            texte_marge = "Données insuffisantes"
+                            reference_marge = ""
+                            couleur_marge = "#6b7280"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_marge};">
+                            <div class="metric-label" style="font-size: 16px;">Marge brute par sujet</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {texte_marge}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_marge}</span><br>
+                                • Prix de vente moyen : {prix_vente_moyen:,.0f} FCFA/sujet
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # === SYNTHÈSE AVEC RÉFÉRENCES ===
+                        if prix_vente_moyen > 0:
+                            part_cv_sur_prix = (cout_var_final / prix_vente_moyen) * 100
+                            if part_cv_sur_prix < 65:
+                                synthese = "Coûts variables maîtrisés → bonne rentabilité"
+                                reference_synthese = "(< 65% du prix de vente → excellente performance)"
+                                couleur_synthese = "#34d399"
+                            elif part_cv_sur_prix < 80:
+                                synthese = "Coûts variables modérés → rentabilité correcte"
+                                reference_synthese = "(65-80% du prix de vente → performance acceptable)"
+                                couleur_synthese = "#E2B75F"
+                            elif part_cv_sur_prix < 90:
+                                synthese = "Coûts variables élevés → marge réduite"
+                                reference_synthese = "(80-90% du prix de vente → attention requise)"
+                                couleur_synthese = "#fbbf24"
+                            else:
+                                synthese = "🔴 Coûts variables très élevés → rentabilité critique"
+                                reference_synthese = "(> 90% du prix de vente → action urgente)"
+                                couleur_synthese = "#f87171"
+                        else:
+                            synthese = "Données de prix insuffisantes"
+                            reference_synthese = ""
+                            couleur_synthese = "#6b7280"
+                        
+                        st.markdown(f"""
+                        <div class="metric-card" style="--accent:{couleur_synthese};">
+                            <div class="metric-label" style="font-size: 16px;">Synthèse</div>
+                            <div class="metric-sub" style="margin-top: 10px; font-size: 13px; line-height: 1.6;">
+                                • {synthese}<br>
+                                • <span style="color: #6b7280; font-size: 11px;">{reference_synthese}</span><br>
+                                • Coûts variables : {cout_var_final:.0f} FCFA/sujet ({part_cv_sur_prix:.0f}% du prix)<br>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        else:
+            st.info("Données journalières insuffisantes.")
+    else:
+        st.caption("Graphique masqué. Cochez la case pour l'afficher.")
     # ============================================================
     # CARTES RÉCAPITULATIVES STYLISÉES
     # ============================================================
+    # Calculer cout_aliment_par_jour si non défini
+    if 'cout_aliment_par_jour' not in dir():
+        if not j_fin.empty and "conso_jour" in j_fin.columns:
+            cout_aliment_par_jour = j_fin["conso_jour"] * 360
+        else:
+            cout_aliment_par_jour = pd.Series([0])
+
+    # S'assurer que cout_total_cumule est défini
+        if 'cout_total_cumule' not in dir():
+            if 'cout_aliment_par_jour' in dir() and not cout_aliment_par_jour.empty:
+                cout_total_cumule = cout_poussins_total + cout_aliment_par_jour.cumsum()
+            else:
+                cout_total_cumule = pd.Series([0])
+        
+        # S'assurer que cout_par_sujet est défini
+        if 'cout_par_sujet' not in dir():
+            if effectif_initial > 0 and not cout_total_cumule.empty:
+                cout_par_sujet = cout_total_cumule / effectif_initial
+            else:
+                cout_par_sujet = pd.Series([0])
     st.markdown("#### 📊 Récapitulatif des coûts")
     col1, col2, col3, col4 = st.columns(4)
 
